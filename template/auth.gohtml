@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh" data-bs-theme="auto">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Authorize</title>
+    <link href="https://gcore.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script src="https://gcore.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+            crossorigin="anonymous"></script>
+</head>
+
+<body>
+<div class="container">
+    <main>
+        <div class="row">
+            <h1>Authorize</h1>
+        </div>
+        <div class="row">
+            <form action="/oauth2/authorize" method="GET" class="col">
+                <input type="hidden" name="client_id" value="{{.clientInfo.GetID}}">
+                <input type="hidden" name="response_type" value="{{.responseType}}">
+                <div class="row">
+                    <p>The client would like to perform actions on your behalf.</p>
+                </div>
+                <div class="row">
+                    {{- range .scopeRequested }}
+                        <div class="col-sm-12 col-md-6 col-lg-4 col-xl-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="{{.GetName}}" name="consented"
+                                       {{if .IsDefault}}checked readonly{{end}} value="{{.GetName}}">
+                                <label class="form-check-label" for="{{.GetName}}">{{.GetName}}</label>
+                            </div>
+                        </div>
+                    {{- end }}
+                </div>
+                <div class="row">
+                    <button
+                            type="submit"
+                            class="btn btn-primary btn-lg"
+                    >
+                        Allow
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+
+<script>
+
+</script>
+</body>
+
+</html>

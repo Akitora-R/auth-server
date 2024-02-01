@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh" data-bs-theme="auto">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+    <link href="https://gcore.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script src="https://gcore.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+            crossorigin="anonymous"></script>
+</head>
+
+<body>
+<div class="container">
+    <main>
+        <div class="row">
+            <div class="col">
+                <h1>Login In {{.cid}}</h1>
+            </div>
+        </div>
+        <div class="row">
+            {{if .err}}
+                <div class="alert alert-warning" role="alert">
+                    {{.err}}
+                </div>
+            {{end}}
+        </div>
+        <form action="/login" method="POST" class="row">
+            <div class="col">
+                <div class="row mb-3">
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label" for="email">E-Mail</label>
+                            <input type="email" class="form-control" name="email" id="email" required
+                                   placeholder="Please enter your user name">
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col">
+                        <div class="form-group">
+                            <label class="form-label" for="password">Password</label>
+                            <input type="password" class="form-control" name="password" id="password"
+                                   placeholder="Please enter your password">
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-lg col-md-6 mb-3">
+                        <button type="submit" class="w-100 btn btn-outline-primary btn-lg">Login</button>
+                    </div>
+                    <div class="col-lg col-md-6 mb-3">
+                        <button type="button" class="w-100 btn btn-outline-primary btn-lg" data-bs-toggle="modal"
+                                data-bs-target="#telegramModal" disabled>
+                            Login By Telegram
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <div class="modal fade" id="telegramModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Telegram Login</h5>
+                    </div>
+                    <div class="modal-body">
+                        <script async src="https://telegram.org/js/telegram-widget.js?22"
+                                data-telegram-login="AkitoraTestBot"
+                                data-size="large"
+                                data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    (function () {
+        const htmlElement = document.querySelector("html");
+        if (htmlElement.getAttribute("data-bs-theme") === 'auto') {
+            function updateTheme() {
+                document.querySelector("html").setAttribute("data-bs-theme",
+                    window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+            }
+
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme);
+            updateTheme();
+        }
+    })();
+
+    /**
+     * @typedef {Object} User
+     * @property {string} first_name - 用户的名字
+     * @property {string} last_name - 用户的姓氏
+     * @property {number} id - 用户的ID
+     * @property {string} [username] - 用户的用户名（可选）
+     */
+
+    /**
+     * 当Telegram认证成功时处理用户信息
+     * @param {User} user - 用户信息对象
+     */
+    function onTelegramAuth(user) {
+        console.info('telegram login', user)
+    }
+
+</script>
+</body>
+</html>
