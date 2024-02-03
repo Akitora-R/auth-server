@@ -36,8 +36,11 @@ func InitServer() *server.Server {
 	manager.MapClientStorage(storeImpl.ClientStore)
 
 	oauth2ServerConfig := server.Config{
-		TokenType:            "Bearer",
-		AllowedResponseTypes: []oauth2.ResponseType{oauth2.Code, oauth2.Token},
+		TokenType: "Bearer",
+		AllowedResponseTypes: []oauth2.ResponseType{
+			oauth2.Code,
+			oauth2.Token,
+		},
 		AllowedGrantTypes: []oauth2.GrantType{
 			oauth2.AuthorizationCode,
 			oauth2.ClientCredentials,
@@ -64,51 +67,14 @@ func InitServer() *server.Server {
 func userAuthorizeHandler(w http.ResponseWriter, r *http.Request) (userID string, err error) {
 	s, err := session.Start(r.Context(), w, r)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	uid, ok := s.Get(sessionKeyUserID)
 	if !ok {
-		if r.Form == nil {
-			_ = r.ParseForm()
-		}
-		clientID := r.Form.Get("client_id")
-		ci, clientErr := storeImpl.ClientStore.GetByID(r.Context(), clientID)
-		if clientErr != nil {
-			err = clientErr
-			return
-		}
-		if ci == nil {
-			err = errors.New("invalid client id")
-			return
-		}
-		s.Set(sessionKeyResponseType, r.Form.Get("response_type"))
-		s.Set(sessionKeyScopeRequested, parseScopes(r.FormValue("scope")))
-		s.Set(sessionKeyClientID, clientID)
-		if err = s.Save(); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Location", pathLogin)
-		w.WriteHeader(http.StatusFound)
+		http.Error(w, "failed to read session data", http.StatusInternalServerError)
 		return
 	}
-	if consented := r.Form["consented"]; len(consented) > 0 {
-		var consents []ScopeInfo
-		for _, consentStr := range consented {
-			if scope, err := parseScope(consentStr); err == nil {
-				consents = append(consents, scope)
-			}
-		}
-		if len(consents) > 0 {
-			s.Set(sessionKeyScopeConsented, consents)
-		}
-	} else {
-		w.Header().Set("Location", pathAuth)
-		w.WriteHeader(http.StatusFound)
-		return
-	}
-
 	userID = strconv.FormatInt(uid.(int64), 10)
 	return
 }

@@ -4,6 +4,7 @@ import (
 	storeImpl "auth-server/internal/store"
 	"auth-server/internal/util"
 	"encoding/json"
+	"errors"
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/go-session/session"
 	"html/template"
@@ -29,14 +30,72 @@ func InitRoute(srv *server.Server) {
 	http.HandleFunc(pathLogin, loginHandler)
 	http.HandleFunc(pathAuth, authHandler)
 	http.HandleFunc(pathAuthorize, func(w http.ResponseWriter, r *http.Request) {
-		err := srv.HandleAuthorizeRequest(w, r)
+		s, err := session.Start(r.Context(), w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		_ = r.ParseForm()
+		uid, ok := s.Get(sessionKeyUserID)
+		if !ok {
+			_ = s.Flush()
+			clientID := r.Form.Get("client_id")
+			slog.Info("logging for not logged user", "client_id", clientID)
+			ci, err := storeImpl.ClientStore.GetByID(r.Context(), clientID)
+			if err != nil {
+				return
+			}
+			if ci == nil {
+				err = errors.New("invalid client id")
+				return
+			}
+			s.Set(sessionKeyResponseType, r.Form.Get("response_type"))
+			s.Set(sessionKeyScopeRequested, parseScopes(r.FormValue("scope")))
+			s.Set(sessionKeyClientID, clientID)
+			if err = s.Save(); err != nil {
+				slog.Error("error when saving session", "err", err)
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			w.Header().Set("Location", pathLogin)
+			w.WriteHeader(http.StatusFound)
+			return
+		}
+		slog.Info("logging for logged user", "user_id", uid)
+
+		if consented := r.Form["consented"]; len(consented) > 0 {
+			var consents []ScopeInfo
+			for _, consentStr := range consented {
+				if scope, err := parseScope(consentStr); err == nil {
+					consents = append(consents, scope)
+				}
+			}
+			if len(consents) > 0 {
+				s.Set(sessionKeyScopeConsented, consents)
+			} else {
+				slog.Debug("logged but consents is invalid", "user_id", uid, "redirect", pathAuth)
+				w.Header().Set("Location", pathAuth)
+				w.WriteHeader(http.StatusFound)
+				return
+			}
+		} else if _, ok = s.Get(sessionKeyScopeConsented); !ok {
+			slog.Debug("logged but not consented", "user_id", uid, "redirect", pathAuth)
+			w.Header().Set("Location", pathAuth)
+			w.WriteHeader(http.StatusFound)
+			return
+		}
+		if err = s.Save(); err != nil {
+			slog.Error("error when saving session", "err", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		err = srv.HandleAuthorizeRequest(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 	})
 
 	http.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
-
 		err := srv.HandleTokenRequest(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -84,13 +143,13 @@ func InitRoute(srv *server.Server) {
 		m := map[string]any{
 			"active": true,
 			"sub":    ti.GetUserID(),
-			// 可以添加其他必要的字段
 		}
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(m)
 	})
 
 	http.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		token, err := srv.ValidationBearerToken(r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -168,7 +227,6 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	slog.Info("session", "id", s.SessionID())
 	if _, ok := s.Get(sessionKeyUserID); !ok {
 		w.Header().Set("Location", pathLogin)
 		w.WriteHeader(http.StatusFound)
