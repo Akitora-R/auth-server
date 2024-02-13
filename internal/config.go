@@ -1,6 +1,7 @@
-package main
+package internal
 
 import (
+	"auth-server/internal/model"
 	"log/slog"
 	"os"
 
@@ -9,12 +10,21 @@ import (
 
 var AuthServerConfig Config
 
+type JWTConfig struct {
+	Kid    string `yaml:"kid"`
+	Type   string `yaml:"type"`
+	PEM    string `yaml:"pem,omitempty"`
+	Secret string `yaml:"secret,omitempty"`
+}
+
 type Config struct {
 	Host  string `yaml:"host"`
 	Port  int    `yaml:"port"`
 	Redis struct {
 		Address string `yaml:"address"`
 	} `yaml:"redis"`
+	Jwt    []JWTConfig          `yaml:"jwt"`
+	Client []model.ScopedClient `yaml:"client"`
 }
 
 func init() {

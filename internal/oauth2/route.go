@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	"auth-server/internal/model"
 	storeImpl "auth-server/internal/store"
 	"auth-server/internal/util"
 	"encoding/json"
@@ -22,6 +23,7 @@ const (
 	pathLogin                = "/login"
 	pathAuth                 = "/auth"
 	pathAuthorize            = "/oauth2/authorize"
+	pathJwkSet               = "/.well-known/jwks.json"
 )
 
 var tpl = template.Must(template.New("").ParseGlob("template/*"))
@@ -50,7 +52,7 @@ func InitRoute(srv *server.Server) {
 				return
 			}
 			s.Set(sessionKeyResponseType, r.Form.Get("response_type"))
-			s.Set(sessionKeyScopeRequested, parseScopes(r.FormValue("scope")))
+			s.Set(sessionKeyScopeRequested, model.ParseScopes(r.FormValue("scope")))
 			s.Set(sessionKeyClientID, clientID)
 			if err = s.Save(); err != nil {
 				slog.Error("error when saving session", "err", err)
@@ -64,9 +66,9 @@ func InitRoute(srv *server.Server) {
 		slog.Info("logging for logged user", "user_id", uid)
 
 		if consented := r.Form["consented"]; len(consented) > 0 {
-			var consents []ScopeInfo
+			var consents []model.ScopeInfo
 			for _, consentStr := range consented {
-				if scope, err := parseScope(consentStr); err == nil {
+				if scope, err := model.ParseScope(consentStr); err == nil {
 					consents = append(consents, scope)
 				}
 			}
@@ -165,6 +167,19 @@ func InitRoute(srv *server.Server) {
 		e.SetIndent("", "  ")
 		_ = e.Encode(data)
 	})
+	http.HandleFunc(pathJwkSet, func(w http.ResponseWriter, r *http.Request) {
+		var keys []map[string]string
+		for _, key := range JWTConfig {
+			keys = append(keys, key.ToJWK())
+		}
+
+		jwks := map[string]interface{}{
+			"keys": keys,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(jwks)
+	})
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -257,7 +272,7 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		data["responseType"] = rt
 	}
-	if sci, ok := clientInfo.(storeImpl.ScopedClientInfo); ok {
+	if sci, ok := clientInfo.(model.ScopedClientInfo); ok {
 		data["clientInfo"] = sci
 	}
 	scopes, ok := s.Get(sessionKeyScopeRequested)

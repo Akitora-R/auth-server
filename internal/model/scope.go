@@ -1,7 +1,7 @@
-package oauth2
+package model
 
 import (
-	"github.com/go-oauth2/oauth2/v4/errors"
+	"errors"
 	"strings"
 )
 
@@ -40,7 +40,7 @@ var (
 	defaultScopes = []ScopeInfo{Profile}
 )
 
-func parseScope(s string) (ScopeInfo, error) {
+func ParseScope(s string) (ScopeInfo, error) {
 	for _, scope := range allScopes {
 		if s == scope.GetName() {
 			return scope, nil
@@ -49,7 +49,7 @@ func parseScope(s string) (ScopeInfo, error) {
 	return nil, errors.New("invalid scope name")
 }
 
-func parseScopes(s string) []ScopeInfo {
+func ParseScopes(s string) []ScopeInfo {
 	m := map[string]ScopeInfo{}
 	for _, scopeStr := range strings.Fields(s) {
 		for _, scope := range allScopes {

@@ -1,10 +1,10 @@
 package oauth2
 
 import (
+	"auth-server/internal/model"
 	storeImpl "auth-server/internal/store"
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/go-oauth2/oauth2/v4/errors"
-	"github.com/go-oauth2/oauth2/v4/generates"
 	"github.com/go-oauth2/oauth2/v4/manage"
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/go-oauth2/oauth2/v4/store"
@@ -29,9 +29,7 @@ func InitServer() *server.Server {
 	// token store
 	manager.MustTokenStorage(store.NewMemoryTokenStore())
 
-	// generate jwt access token
-	// manager.MapAccessGenerate(generates.NewJWTAccessGenerate("", []byte("00000000"), jwt.SigningMethodHS512))
-	manager.MapAccessGenerate(generates.NewAccessGenerate())
+	manager.MapAccessGenerate(&ClientConfigTokenGenerate{})
 
 	manager.MapClientStorage(storeImpl.ClientStore)
 
@@ -89,7 +87,7 @@ func scopeHandler(w http.ResponseWriter, r *http.Request) (string, error) {
 		return "", errors.New("failed to get scope")
 	}
 	var scopeName []string
-	for _, scopeInfo := range consented.([]ScopeInfo) {
+	for _, scopeInfo := range consented.([]model.ScopeInfo) {
 		scopeName = append(scopeName, scopeInfo.GetName())
 	}
 	return strings.Join(scopeName, " "), nil
