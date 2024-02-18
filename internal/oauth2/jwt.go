@@ -17,7 +17,7 @@ func init() {
 }
 
 func LoadJWTConfig() error {
-	for _, keyConfig := range internal.AuthServerConfig.Jwt {
+	for _, keyConfig := range internal.AuthServerConfig.JWT {
 		switch keyConfig.Type {
 		case "RSA":
 			publicKey, err := parseRSAPublicKeyFromPEM(keyConfig.PEM)

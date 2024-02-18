@@ -3,14 +3,13 @@ package oauth2
 import (
 	"auth-server/internal/model"
 	storeImpl "auth-server/internal/store"
-	"auth-server/internal/util"
 	"encoding/json"
-	"errors"
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/go-session/session"
 	"html/template"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -24,11 +23,22 @@ const (
 	pathAuth                 = "/auth"
 	pathAuthorize            = "/oauth2/authorize"
 	pathJwkSet               = "/.well-known/jwks.json"
+	placeholderFile          = "placeholder.jpg"
 )
 
 var tpl = template.Must(template.New("").ParseGlob("template/*"))
 
 func InitRoute(srv *server.Server) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		_, err := os.Stat(placeholderFile)
+		if os.IsNotExist(err) {
+			w.Header().Set("Content-Type", "text/plain")
+			_, _ = w.Write([]byte("UwU"))
+		} else {
+			w.Header().Set("Content-Type", "image/jpeg")
+			http.ServeFile(w, r, placeholderFile)
+		}
+	})
 	http.HandleFunc(pathLogin, loginHandler)
 	http.HandleFunc(pathAuth, authHandler)
 	http.HandleFunc(pathAuthorize, func(w http.ResponseWriter, r *http.Request) {
@@ -43,12 +53,15 @@ func InitRoute(srv *server.Server) {
 			_ = s.Flush()
 			clientID := r.Form.Get("client_id")
 			slog.Info("logging for not logged user", "client_id", clientID)
-			ci, err := storeImpl.ClientStore.GetByID(r.Context(), clientID)
+			ci, err := storeImpl.ClientRepo.GetByID(r.Context(), clientID)
 			if err != nil {
+				slog.Warn("err when fetch client", "id", clientID, "err", err.Error())
+				http.Error(w, "invalid_client_id", http.StatusBadRequest)
 				return
 			}
 			if ci == nil {
-				err = errors.New("invalid client id")
+				slog.Warn("fetched nil client", "id", clientID)
+				http.Error(w, "invalid_client_id", http.StatusBadRequest)
 				return
 			}
 			s.Set(sessionKeyResponseType, r.Form.Get("response_type"))
@@ -116,13 +129,13 @@ func InitRoute(srv *server.Server) {
 
 		cli, err := srv.Manager.GetClient(r.Context(), username)
 		if err != nil {
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid_client", "error_description": "ScopedClient authentication failed"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid_client", "error_description": "AuthClient authentication failed"})
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		if cli.GetSecret() != password {
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid_client", "error_description": "ScopedClient authentication failed"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid_client", "error_description": "AuthClient authentication failed"})
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -205,7 +218,11 @@ func handleFormLogin(w http.ResponseWriter, r *http.Request, s session.Store) {
 	}
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
-	userInfo, err := storeImpl.UserRepo.GetUser(email, util.DigestSHA256Hex(password))
+	d, _ := json.Marshal(map[string]string{
+		"email":    email,
+		"password": password,
+	})
+	userInfo, _, err := storeImpl.UserRepo.GetUserByCredentials(email, model.ProviderEmailPassword, d)
 	if err != nil {
 		_ = renderHtml(w, "login.gohtml", http.StatusUnauthorized, map[string]any{
 			"err": "invalid_credentials",
@@ -259,7 +276,7 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientInfo, err := storeImpl.ClientStore.GetByID(r.Context(), cID.(string))
+	clientInfo, err := storeImpl.ClientRepo.GetByID(r.Context(), cID.(string))
 	if err != nil {
 		http.Error(w, "failed to get client info", http.StatusInternalServerError)
 		return

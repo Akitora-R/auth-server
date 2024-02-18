@@ -1,13 +1,13 @@
 package oauth2
 
 import (
+	"auth-server/internal"
 	"auth-server/internal/model"
 	storeImpl "auth-server/internal/store"
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/go-oauth2/oauth2/v4/manage"
 	"github.com/go-oauth2/oauth2/v4/server"
-	"github.com/go-oauth2/oauth2/v4/store"
 	"github.com/go-session/session"
 	"log/slog"
 	"net/http"
@@ -26,12 +26,9 @@ func InitServer() *server.Server {
 		IsGenerateRefresh: true,
 	})
 
-	// token store
-	manager.MustTokenStorage(store.NewMemoryTokenStore())
-
+	manager.MustTokenStorage(storeImpl.NewRedisStoreWithCli(internal.Rdb), nil)
 	manager.MapAccessGenerate(&ClientConfigTokenGenerate{})
-
-	manager.MapClientStorage(storeImpl.ClientStore)
+	manager.MapClientStorage(storeImpl.ClientRepo)
 
 	oauth2ServerConfig := server.Config{
 		TokenType: "Bearer",

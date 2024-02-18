@@ -23,7 +23,7 @@
                 <input type="hidden" name="client_id" value="{{.clientInfo.GetID}}">
                 <input type="hidden" name="response_type" value="{{.responseType}}">
                 <div class="row">
-                    <p>The {{.clientInfo.GetName}} is requesting following scopes:</p>
+                    <p>The {{.clientInfo.GetDisplayName}} is requesting following scopes:</p>
                 </div>
                 <div class="row">
                     {{- range .scopeRequested }}

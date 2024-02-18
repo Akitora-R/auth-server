@@ -11,7 +11,7 @@ import (
 
 var tokenGenerator = map[model.TokenType]oauth2.AccessGenerate{
 	model.OpaqueToken: &generates.AccessGenerate{},
-	model.JWT:         generates.NewJWTAccessGenerate(internal.AuthServerConfig.Jwt[0].Kid, []byte(internal.AuthServerConfig.Jwt[0].PEM), jwt.SigningMethodRS256),
+	model.JWT:         generates.NewJWTAccessGenerate(internal.AuthServerConfig.JWT[0].Kid, []byte(internal.AuthServerConfig.JWT[0].PEM), jwt.SigningMethodRS256),
 }
 
 type ClientConfigTokenGenerate struct {

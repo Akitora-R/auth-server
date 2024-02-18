@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"auth-server/internal/model"
 	"log/slog"
 	"os"
 
@@ -23,8 +22,7 @@ type Config struct {
 	Redis struct {
 		Address string `yaml:"address"`
 	} `yaml:"redis"`
-	Jwt    []JWTConfig          `yaml:"jwt"`
-	Client []model.ScopedClient `yaml:"client"`
+	JWT []JWTConfig `yaml:"jwt"`
 }
 
 func init() {
