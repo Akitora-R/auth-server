@@ -24,7 +24,6 @@ FROM scratch
 COPY --from=builder /app/auth-server .
 
 # If your application relies on a config.yaml file, ensure it's also copied into the container
-COPY --from=builder /app/config.yaml .
 
 # Port that the application listens on
 EXPOSE 8080
