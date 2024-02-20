@@ -13,8 +13,9 @@ type JWTKey interface {
 }
 
 type RSAKey struct {
-	KeyID     string
-	PublicKey *rsa.PublicKey
+	KeyID      string
+	PublicKey  *rsa.PublicKey
+	PrivateKey *rsa.PrivateKey
 }
 
 func (r *RSAKey) Kid() string {

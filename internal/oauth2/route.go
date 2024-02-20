@@ -182,7 +182,7 @@ func InitRoute(srv *server.Server) {
 	})
 	http.HandleFunc(pathJwkSet, func(w http.ResponseWriter, r *http.Request) {
 		var keys []map[string]string
-		for _, key := range JWTConfig {
+		for _, key := range JWTKeys {
 			keys = append(keys, key.ToJWK())
 		}
 

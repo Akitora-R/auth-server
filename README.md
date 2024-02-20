@@ -13,4 +13,12 @@ port: 80
 host: 0.0.0.0
 redis:
   address: 127.0.0.1:6379
+db: "root:root@(localhost:3306)/auth?parseTime=true"
+jwt:
+  - kid: "rsa1"
+    type: "RSA"
+    pem: |
+      -----BEGIN RSA PRIVATE KEY-----
+      ...
+      -----END RSA PRIVATE KEY-----
 ```

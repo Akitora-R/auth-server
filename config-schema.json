@@ -1,28 +1,54 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Configuration for server.",
   "type": "object",
   "properties": {
     "host": {
-      "type": "string"
+      "type": "string",
+      "description": "The hostname or IP address where the application server is running."
     },
     "port": {
-      "type": "integer"
+      "type": "integer",
+      "description": "The port number on which the application server listens for incoming connections."
     },
     "redis": {
       "type": "object",
       "properties": {
         "address": {
-          "type": "string"
+          "type": "string",
+          "description": "The address of the Redis server used for caching and session storage."
         }
       },
-      "required": [
-        "address"
-      ]
+      "required": ["address"],
+      "description": "Configuration settings for connecting to a Redis server."
+    },
+    "db": {
+      "type": "string",
+      "description": "The connection string or identifier for the application's primary database."
+    },
+    "jwt": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kid": {
+            "type": "string",
+            "description": "A unique identifier for the JWT key (Key ID)."
+          },
+          "alg": {
+            "type": "string",
+            "description": "The algorithm used to sign the JWT (e.g., HS256, RS256)."
+          },
+          "sec": {
+            "type": "string",
+            "description": "The secret key used for signing the JWT, specific to the key identified by 'kid'."
+          }
+        },
+        "required": ["kid", "alg", "sec"],
+        "description": "Configuration for a set of JWT keys used for authentication and token management."
+      },
+      "description": "A list of configurations for JWT authentication, allowing multiple keys and algorithms."
     }
   },
-  "required": [
-    "host",
-    "port",
-    "redis"
-  ]
+  "required": ["host", "port", "redis", "db", "jwt"]
 }
