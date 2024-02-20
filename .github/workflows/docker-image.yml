@@ -6,7 +6,6 @@ on:
     branches: ['release']
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build:
@@ -15,9 +14,9 @@ jobs:
     steps:
       - name: set lower case owner name
         run: |
-          echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
+          echo "REPO=${REPO_NAME,,}" >>${GITHUB_ENV}
         env:
-          OWNER: '${{ github.repository_owner }}'
+          REPO_NAME: '${{ github.repository }}'
 
       - name: Check out the repo
         uses: actions/checkout@v2
@@ -41,4 +40,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/${{ env.OWNER_LC }}/${{ env.IMAGE_NAME }}:latest
+          tags: ghcr.io/${{ env.REPO }}:latest
