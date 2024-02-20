@@ -84,7 +84,7 @@ func (s *TokenStore) wrapperKey(key string) string {
 
 func (s *TokenStore) checkError(result redis.Cmder) (bool, error) {
 	if err := result.Err(); err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			return true, nil
 		}
 		return false, err
