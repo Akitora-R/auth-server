@@ -16,8 +16,8 @@ redis:
 db: "root:root@(localhost:3306)/auth?parseTime=true"
 jwt:
   - kid: "rsa1"
-    type: "RSA"
-    pem: |
+    alg: "RS256"
+    sec: |
       -----BEGIN RSA PRIVATE KEY-----
       ...
       -----END RSA PRIVATE KEY-----
