@@ -25,7 +25,7 @@ func LoadJWTConfig() error {
 				return err
 			}
 			JWTKeys = append(JWTKeys, &model.RSAKey{KeyID: keyConfig.Kid, PublicKey: publicKey, PrivateKey: privateKey})
-		case "HS256":
+		case "HS512":
 			JWTKeys = append(JWTKeys, &model.HMACKey{KeyID: keyConfig.Kid, Secret: []byte(keyConfig.Sec)})
 		default:
 			return fmt.Errorf("unknown alg: %s", keyConfig.Alg)

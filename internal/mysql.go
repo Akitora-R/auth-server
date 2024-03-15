@@ -8,7 +8,7 @@ import (
 var DB *sqlx.DB
 
 func init() {
-	db, err := sqlx.Connect("mysql", "root:root@(localhost:3306)/auth?parseTime=true")
+	db, err := sqlx.Connect("mysql", AuthServerConfig.DB)
 	if err != nil {
 		panic(err)
 	}

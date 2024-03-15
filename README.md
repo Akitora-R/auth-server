@@ -2,11 +2,11 @@
 
 🐯 Simple OAuth 2.0 Authorization Server Implementation In Go
 
-## Flow
+# Flow
 
 ![flow.png](flow.png)
 
-## config.yaml
+# config.yaml
 
 ```yaml
 port: 80

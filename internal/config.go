@@ -44,15 +44,19 @@ func init() {
 func setDefaultValues() {
 	if AuthServerConfig.Host == "" {
 		AuthServerConfig.Host = "localhost"
+		slog.Debug("set default listening host", "address", AuthServerConfig.Host)
 	}
 	if AuthServerConfig.Port == 0 {
 		AuthServerConfig.Port = 8080
+		slog.Debug("set default listening port", "port", AuthServerConfig.Port)
 	}
 	if AuthServerConfig.Redis.Address == "" {
 		AuthServerConfig.Redis.Address = "localhost:6379"
+		slog.Debug("set default redis address", "port", AuthServerConfig.Redis.Address)
 	}
 	if AuthServerConfig.DB == "" {
-		AuthServerConfig.Redis.Address = "root:root@(localhost:3306)/auth?parseTime=true"
+		AuthServerConfig.DB = "root:root@(localhost:3306)/auth?parseTime=true"
+		slog.Debug("set default db address", "port", AuthServerConfig.DB)
 	}
 	if len(AuthServerConfig.JWT) == 0 {
 		keySize := 2048
@@ -67,7 +71,6 @@ func setDefaultValues() {
 		})
 
 		slog.Info("Generated RSA key pair", "algorithm", alg, "keySize", keySize)
-		// Set default JWTConfig
 		AuthServerConfig.JWT = []JWTConfig{
 			{
 				Kid: "default",
