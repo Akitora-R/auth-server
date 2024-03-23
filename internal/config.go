@@ -5,8 +5,11 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"log/slog"
 	"os"
+	"reflect"
+	"regexp"
 
 	"gopkg.in/yaml.v3"
 )
@@ -23,7 +26,8 @@ type Config struct {
 	Host  string `yaml:"host"`
 	Port  int    `yaml:"port"`
 	Redis struct {
-		Address string `yaml:"address"`
+		Host string `yaml:"host"`
+		Port string `yaml:"port"`
 	} `yaml:"redis"`
 	DB  string      `yaml:"db"`
 	JWT []JWTConfig `yaml:"jwt"`
@@ -38,6 +42,7 @@ func init() {
 			slog.Error("failed to unmarshal config", "err", err)
 		}
 	}
+	resolveEnv(&AuthServerConfig)
 	setDefaultValues()
 }
 
@@ -50,9 +55,13 @@ func setDefaultValues() {
 		AuthServerConfig.Port = 8080
 		slog.Debug("set default listening port", "port", AuthServerConfig.Port)
 	}
-	if AuthServerConfig.Redis.Address == "" {
-		AuthServerConfig.Redis.Address = "localhost:6379"
-		slog.Debug("set default redis address", "port", AuthServerConfig.Redis.Address)
+	if AuthServerConfig.Redis.Host == "" {
+		AuthServerConfig.Redis.Host = "localhost"
+		slog.Debug("set default redis address", "port", AuthServerConfig.Redis.Host)
+	}
+	if AuthServerConfig.Redis.Port == "" {
+		AuthServerConfig.Redis.Port = "6379"
+		slog.Debug("set default redis port", "port", AuthServerConfig.Redis.Port)
 	}
 	if AuthServerConfig.DB == "" {
 		AuthServerConfig.DB = "root:root@(localhost:3306)/auth?parseTime=true"
@@ -78,5 +87,53 @@ func setDefaultValues() {
 				Sec: string(privateKeyPEM),
 			},
 		}
+	}
+}
+
+func resolveEnv(cfg *Config) {
+	cfgV := reflect.ValueOf(cfg).Elem()
+	resolveStruct(cfgV)
+}
+
+func resolveStruct(v reflect.Value) {
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldType := t.Field(i)
+
+		switch field.Kind() {
+		case reflect.String:
+			resolveString(field, fieldType.Name)
+		case reflect.Slice:
+			for j := 0; j < field.Len(); j++ {
+				resolveStruct(field.Index(j))
+			}
+		case reflect.Struct:
+			resolveStruct(field)
+		default:
+		}
+	}
+}
+
+func resolveString(v reflect.Value, fieldName string) {
+	val := v.String()
+	re := regexp.MustCompile(`\$\{(.+?)(?::(.+?))?}`)
+	matches := re.FindStringSubmatch(val)
+
+	if len(matches) > 1 {
+		envKey := matches[1]
+		defaultValue := ""
+		if len(matches) == 3 {
+			defaultValue = matches[2]
+		}
+
+		envVal, found := os.LookupEnv(envKey)
+		if !found {
+			if defaultValue == "" {
+				panic(fmt.Sprintf("Environment variable for %s (%s) is not set and no default value is provided", fieldName, envKey))
+			}
+			envVal = defaultValue
+		}
+		v.SetString(envVal)
 	}
 }

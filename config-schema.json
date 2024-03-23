@@ -14,12 +14,17 @@
     "redis": {
       "type": "object",
       "properties": {
-        "address": {
-          "type": "string",
-          "description": "The address of the Redis server used for caching and session storage."
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "string"
         }
       },
-      "required": ["address"],
+      "required": [
+        "host",
+        "port"
+      ],
       "description": "Configuration settings for connecting to a Redis server."
     },
     "db": {
@@ -44,11 +49,21 @@
             "description": "The secret key used for signing the JWT, specific to the key identified by 'kid'."
           }
         },
-        "required": ["kid", "alg", "sec"],
+        "required": [
+          "kid",
+          "alg",
+          "sec"
+        ],
         "description": "Configuration for a set of JWT keys used for authentication and token management."
       },
       "description": "A list of configurations for JWT authentication, allowing multiple keys and algorithms."
     }
   },
-  "required": ["host", "port", "redis", "db", "jwt"]
+  "required": [
+    "host",
+    "port",
+    "redis",
+    "db",
+    "jwt"
+  ]
 }
