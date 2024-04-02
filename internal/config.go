@@ -29,8 +29,18 @@ type Config struct {
 		Host string `yaml:"host"`
 		Port string `yaml:"port"`
 	} `yaml:"redis"`
-	DB  string      `yaml:"db"`
-	JWT []JWTConfig `yaml:"jwt"`
+	DB         string      `yaml:"db"`
+	JWT        []JWTConfig `yaml:"jwt"`
+	Cloudflare struct {
+		Turnstile struct {
+			Key    string `yaml:"key"`
+			Secret string `yaml:"secret"`
+		} `yaml:"turnstile"`
+	} `yaml:"cloudflare"`
+	Telegram struct {
+		BotName  string `yaml:"bot-name"`
+		BotToken string `yaml:"bot-token"`
+	} `yaml:"telegram"`
 }
 
 func init() {
@@ -87,6 +97,9 @@ func setDefaultValues() {
 				Sec: string(privateKeyPEM),
 			},
 		}
+	}
+	if AuthServerConfig.Cloudflare.Turnstile.Key == "" || AuthServerConfig.Cloudflare.Turnstile.Secret == "" {
+		panic("Cloudflare Turnstile un-config")
 	}
 }
 

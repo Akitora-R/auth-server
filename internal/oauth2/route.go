@@ -1,10 +1,13 @@
 package oauth2
 
 import (
+	"auth-server/internal"
 	"auth-server/internal/model"
 	storeImpl "auth-server/internal/store"
 	"encoding/json"
+	"fmt"
 	"github.com/go-oauth2/oauth2/v4/server"
+	"github.com/go-resty/resty/v2"
 	"github.com/go-session/session"
 	"html/template"
 	"log/slog"
@@ -29,6 +32,7 @@ const (
 var tpl = template.Must(template.New("").ParseGlob("template/*"))
 
 func InitRoute(srv *server.Server) {
+	session.SetExpired(15 * 60)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, err := os.Stat(placeholderFile)
 		if os.IsNotExist(err) {
@@ -42,6 +46,7 @@ func InitRoute(srv *server.Server) {
 	http.HandleFunc(pathLogin, loginHandler)
 	http.HandleFunc(pathAuth, authHandler)
 	http.HandleFunc(pathAuthorize, func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("Authorize Request", "remote", r.RemoteAddr)
 		s, err := session.Start(r.Context(), w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -210,6 +215,11 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleFormLogin(w http.ResponseWriter, r *http.Request, s session.Store) {
+	if _, ok := s.Get(sessionKeyClientID); !ok {
+		_ = s.Flush()
+		http.Error(w, "invalid_client_id", http.StatusBadRequest)
+		return
+	}
 	if r.Form == nil {
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -218,15 +228,19 @@ func handleFormLogin(w http.ResponseWriter, r *http.Request, s session.Store) {
 	}
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
+	if err := verifyRequest(r.Form.Get("cf-turnstile-response"), r.Header.Get("CF-Connecting-IP")); err != nil {
+		get, _ := s.Get(sessionKeyClientID)
+		_ = renderLoginPage(w, get.(string), http.StatusUnauthorized, err)
+		return
+	}
 	d, _ := json.Marshal(map[string]string{
 		"email":    email,
 		"password": password,
 	})
 	userInfo, _, err := storeImpl.UserRepo.GetUserByCredentials(email, model.ProviderEmailPassword, d)
 	if err != nil {
-		_ = renderHtml(w, "login.gohtml", http.StatusUnauthorized, map[string]any{
-			"err": "invalid_credentials",
-		})
+		get, _ := s.Get(sessionKeyClientID)
+		_ = renderLoginPage(w, get.(string), http.StatusUnauthorized, err)
 		return
 	}
 	s.Set(sessionKeyUserID, userInfo.GetID())
@@ -234,6 +248,32 @@ func handleFormLogin(w http.ResponseWriter, r *http.Request, s session.Store) {
 
 	w.Header().Set("Location", "/auth")
 	w.WriteHeader(http.StatusFound)
+}
+
+type TurnstileResp struct {
+	Success     bool      `json:"success"`
+	ErrorCodes  []string  `json:"error-codes"`
+	ChallengeTs time.Time `json:"challenge_ts"`
+	Hostname    string    `json:"hostname"`
+}
+
+func verifyRequest(token, ip string) error {
+	response, err := resty.New().R().SetFormData(map[string]string{
+		"secret":   internal.AuthServerConfig.Cloudflare.Turnstile.Secret,
+		"response": token,
+		"remoteip": ip,
+	}).Post("https://challenges.cloudflare.com/turnstile/v0/siteverify")
+	if err != nil {
+		return err
+	}
+	re := TurnstileResp{}
+	if err = json.Unmarshal(response.Body(), &re); err != nil {
+		return err
+	}
+	if !re.Success {
+		return fmt.Errorf("%v", re.ErrorCodes)
+	}
+	return nil
 }
 
 func handleLoginPage(w http.ResponseWriter, s session.Store) {
@@ -248,9 +288,7 @@ func handleLoginPage(w http.ResponseWriter, s session.Store) {
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
-	_ = renderHtml(w, "login.gohtml", http.StatusOK, map[string]any{
-		"cid": cid.(string),
-	})
+	_ = renderLoginPage(w, cid.(string), http.StatusUnauthorized, nil)
 }
 
 func authHandler(w http.ResponseWriter, r *http.Request) {
@@ -300,6 +338,18 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 	data["scopeRequested"] = scopes
 
 	_ = renderHtml(w, "auth.gohtml", 200, data)
+}
+
+func renderLoginPage(w http.ResponseWriter, clientName string, code int, err error) error {
+	data := map[string]any{
+		"client_name": clientName,
+		"site_key":    internal.AuthServerConfig.Cloudflare.Turnstile.Key,
+		"bot_name":    internal.AuthServerConfig.Telegram.BotName,
+	}
+	if err != nil {
+		data["err"] = err
+	}
+	return renderHtml(w, "login.gohtml", code, data)
 }
 
 func renderHtml(w http.ResponseWriter, tplName string, code int, data any) error {

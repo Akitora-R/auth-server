@@ -31,9 +31,9 @@ func (t *ProviderType) Value() (driver.Value, error) {
 	v := *t
 	switch v {
 	case ProviderEmailPassword:
-		return "ProviderEmailPassword", nil
+		return "EmailPassword", nil
 	case ProviderTelegram:
-		return "ProviderTelegram", nil
+		return "Telegram", nil
 	default:
 		return nil, fmt.Errorf("unknown ProviderType: %v", t)
 	}
@@ -51,9 +51,9 @@ func (t *ProviderType) Scan(value interface{}) error {
 	}
 
 	switch strVal {
-	case "ProviderEmailPassword":
+	case "EmailPassword":
 		*t = ProviderEmailPassword
-	case "ProviderTelegram":
+	case "Telegram":
 		*t = ProviderTelegram
 	default:
 		return fmt.Errorf("unknown TokenType: %s", strVal)

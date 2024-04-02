@@ -13,9 +13,12 @@ type MySQLClientStore struct {
 }
 
 func (m *MySQLClientStore) GetByID(_ context.Context, id string) (oauth2.ClientInfo, error) {
-	client := model.AuthClient{}
-	if err := internal.DB.Get(&client, "select * from auth_client where id = ?", id); err != nil {
+	var client []model.AuthClient
+	if err := internal.DB.Select(&client, "select * from auth_client where id = ?", id); err != nil {
 		return nil, err
 	}
-	return &client, nil
+	if len(client) < 1 {
+		return nil, nil
+	}
+	return &client[0], nil
 }
