@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 
@@ -44,14 +45,25 @@ type Config struct {
 }
 
 func init() {
-	data, err := os.ReadFile("config.yaml")
+	configPath, err := filepath.Abs("config.yaml")
 	if err != nil {
-		slog.Warn("failed to read config file or file not found, using default values", "err", err)
-	} else {
-		if err = yaml.Unmarshal(data, &AuthServerConfig); err != nil {
-			slog.Error("failed to unmarshal config", "err", err)
-		}
+		slog.Warn("failed to get absolute path of config file", "err", err)
+		return
 	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		slog.Warn("failed to read config file or file not found", "path", configPath, "err", err)
+		return
+	}
+
+	if err = yaml.Unmarshal(data, &AuthServerConfig); err != nil {
+		slog.Error("failed to unmarshal config", "path", configPath, "err", err)
+		return
+	}
+
+	slog.Info("successfully loaded config file", "path", configPath)
+
 	resolveEnv(&AuthServerConfig)
 	setDefaultValues()
 }

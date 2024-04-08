@@ -1,5 +1,5 @@
 # Use the official Go image as the build environment
-FROM golang:1.21 as builder
+FROM golang:1.22.2 as builder
 
 ENV GO111MODULE=on
 ENV GOPROXY="https://goproxy.io,direct"

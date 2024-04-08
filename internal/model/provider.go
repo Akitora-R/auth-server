@@ -7,8 +7,8 @@ import (
 	"fmt"
 )
 
-type ProviderData[D any] interface {
-	Validate(data D) bool
+type ProviderData interface {
+	Validate(data any) bool
 }
 
 type AuthUserProvider struct {
@@ -39,7 +39,7 @@ func (t *ProviderType) Value() (driver.Value, error) {
 	}
 }
 
-func (t *ProviderType) Scan(value interface{}) error {
+func (t *ProviderType) Scan(value any) error {
 	var strVal string
 	switch value.(type) {
 	case []uint8:

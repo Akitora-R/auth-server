@@ -6,14 +6,15 @@ import (
 	storeImpl "auth-server/internal/store"
 	"encoding/json"
 	"fmt"
-	"github.com/go-oauth2/oauth2/v4/server"
-	"github.com/go-resty/resty/v2"
-	"github.com/go-session/session"
 	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/go-oauth2/oauth2/v4/server"
+	"github.com/go-resty/resty/v2"
+	"github.com/go-session/session"
 )
 
 const (
@@ -22,11 +23,18 @@ const (
 	sessionKeyScopeRequested = "scopeRequested"
 	sessionKeyScopeConsented = "scopeConsented"
 	sessionKeyResponseType   = "responseType"
-	pathLogin                = "/login"
-	pathAuth                 = "/auth"
-	pathAuthorize            = "/oauth2/authorize"
-	pathJwkSet               = "/.well-known/jwks.json"
-	placeholderFile          = "placeholder.jpg"
+
+	placeholderFile = "placeholder.jpg"
+)
+
+const (
+	pathLogin      = "/login"
+	pathAuth       = "/auth"
+	pathAuthorize  = "/oauth2/authorize"
+	pathToken      = "/oauth2/token"
+	pathIntrospect = "/introspect"
+	pathUserinfo   = "/userinfo"
+	pathJwkSet     = "/.well-known/jwks.json"
 )
 
 var tpl = template.Must(template.New("").ParseGlob("template/*"))
@@ -114,15 +122,13 @@ func InitRoute(srv *server.Server) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 	})
-
-	http.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(pathToken, func(w http.ResponseWriter, r *http.Request) {
 		err := srv.HandleTokenRequest(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
-
-	http.HandleFunc("/introspect", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(pathIntrospect, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		username, password, ok := r.BasicAuth()
@@ -167,8 +173,7 @@ func InitRoute(srv *server.Server) {
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(m)
 	})
-
-	http.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(pathUserinfo, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		token, err := srv.ValidationBearerToken(r)
 		if err != nil {
