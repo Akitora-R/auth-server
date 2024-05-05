@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Registration</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <link href="https://cdn.bootcss.com/font-awesome/5.13.0/css/all.css" rel="stylesheet">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+
+<body>
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-half">
+                    <form action="/registration" method="POST">
+                        <div class="field">
+                            <label class="label">邮箱地址</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="email" placeholder="e.g. hello@example.com" required>
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="control">
+                                <button type="submit" class="button is-primary">提交</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+    <script>
+        /**
+         * @param {string} token
+         */
+        window.turnstileCallback = function (token) {
+            console.log("verified", token);
+
+        };
+
+        /**
+         * @typedef {Object} User
+         * @property {string} first_name - 用户的名字
+         * @property {string} last_name - 用户的姓氏
+         * @property {number} id - 用户的ID
+         * @property {string} [username] - 用户的用户名（可选）
+         */
+
+        /**
+         * 当Telegram认证成功时处理用户信息
+         * @param {User} user - 用户信息对象
+         */
+        function onTelegramAuth(user) {
+            console.info('telegram login', user)
+        }
+
+    </script>
+</body>
+
+</html>

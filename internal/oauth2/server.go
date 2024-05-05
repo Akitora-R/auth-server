@@ -4,16 +4,17 @@ import (
 	"auth-server/internal"
 	"auth-server/internal/model"
 	storeImpl "auth-server/internal/store"
-	"github.com/go-oauth2/oauth2/v4"
-	"github.com/go-oauth2/oauth2/v4/errors"
-	"github.com/go-oauth2/oauth2/v4/manage"
-	"github.com/go-oauth2/oauth2/v4/server"
-	"github.com/go-session/session"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-oauth2/oauth2/v4"
+	"github.com/go-oauth2/oauth2/v4/errors"
+	"github.com/go-oauth2/oauth2/v4/manage"
+	"github.com/go-oauth2/oauth2/v4/server"
+	"github.com/go-session/session"
 )
 
 func InitServer() *server.Server {
@@ -65,7 +66,7 @@ func userAuthorizeHandler(w http.ResponseWriter, r *http.Request) (userID string
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	uid, ok := s.Get(sessionKeyUserID)
+	uid, ok := s.Get(internal.SessionKeyUserID)
 	if !ok {
 		http.Error(w, "failed to read session data", http.StatusInternalServerError)
 		return
@@ -79,7 +80,7 @@ func scopeHandler(w http.ResponseWriter, r *http.Request) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	consented, ok := s.Get(sessionKeyScopeConsented)
+	consented, ok := s.Get(internal.SessionKeyScopeConsented)
 	if !ok {
 		return "", errors.New("failed to get scope")
 	}
