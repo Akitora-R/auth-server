@@ -4,6 +4,7 @@ import (
 	"auth-server/internal"
 	"auth-server/internal/model"
 	storeImpl "auth-server/internal/store"
+	"auth-server/internal/util"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -14,10 +15,10 @@ import (
 )
 
 type loginReq struct {
-	ProviderType model.ProviderType `json:"provider_type,omitempty"`
-	LoginKey     string             `json:"login_key,omitempty"`
-	Data         json.RawMessage    `json:"data,omitempty"`
-	CfToken      string             `json:"cf_token,omitempty"`
+	ProviderType *model.ProviderType `json:"provider_type,omitempty"`
+	LoginKey     string              `json:"login_key,omitempty"`
+	Data         json.RawMessage     `json:"data,omitempty"`
+	CfToken      string              `json:"cf_token,omitempty"`
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -59,29 +60,71 @@ func handleJsonLogin(w http.ResponseWriter, r *http.Request, s session.Store) {
 	}
 	req := loginReq{}
 	_ = json.Unmarshal(b, &req)
-	remoteIp := r.Header.Get("CF-Connecting-IP")
-	if remoteIp == "" {
-		host, _, _ := net.SplitHostPort(r.RemoteAddr)
-		remoteIp = host
-	}
+	remoteIp := getIp(r)
 	if err := verifyRequest(req.CfToken, remoteIp); err != nil {
-		slog.Warn("failed to verify request", "addr", remoteIp)
+		slog.Warn("failed to verify request", "user_addr", remoteIp)
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]any{"code": 1})
 		return
 	}
-	userInfo, _, err := storeImpl.UserRepo.GetUserByCredentials(req.LoginKey, req.ProviderType, req.Data)
+	userInfo, err := storeImpl.UserRepo.GetUserByCredentials(req.LoginKey, req.ProviderType, req.Data, s)
 	if err != nil {
 		slog.Warn("failed to verify credentials", "loginKey", req.LoginKey, "provider", req.ProviderType)
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]any{"code": 1})
 		return
 	}
+	if userInfo == nil {
+		slog.Warn("unregistered credential", "loginKey", req.LoginKey, "provider", req.ProviderType)
+		if *req.ProviderType == model.ProviderTelegram {
+			botTokenDigest := util.DigestSHA256(internal.AuthServerConfig.Telegram.BotToken)
+			if !util.ValidateTelegramCredential(req.Data, botTokenDigest) {
+				slog.Warn("Invalid Telegram Credentials")
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"code": 1,
+					"err":  "Invalid Telegram Credentials",
+				})
+				return
+			}
+			tgUser := model.TelegramUser{}
+			_ = json.Unmarshal(req.Data, &tgUser)
+			s.Set(internal.SessionKeyTelegramData, tgUser)
+			if err = s.Save(); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"code": 1,
+					"err":  err,
+				})
+				return
+			}
+		}
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"data": map[string]any{"user": nil},
+		})
+		return
+	}
 	s.Set(internal.SessionKeyUserID, userInfo.GetID())
 	_ = s.Save()
 
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{"code": 0})
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"code": 0,
+		"data": map[string]any{
+			"user": userInfo,
+		},
+	})
+}
+
+func getIp(r *http.Request) string {
+	remoteIp := r.Header.Get("CF-Connecting-IP")
+	if remoteIp == "" {
+		host, _, _ := net.SplitHostPort(r.RemoteAddr)
+		remoteIp = host
+	}
+	return remoteIp
 }
 
 func renderLoginPage(w http.ResponseWriter, clientName string, code int, err error) error {

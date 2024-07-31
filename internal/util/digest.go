@@ -6,7 +6,11 @@ import (
 )
 
 func DigestSHA256Hex(input string) string {
-	hash := sha256.Sum256([]byte(input))
-	hexString := hex.EncodeToString(hash[:])
+	hexString := hex.EncodeToString(DigestSHA256(input))
 	return hexString
+}
+
+func DigestSHA256(input string) []byte {
+	hash := sha256.Sum256([]byte(input))
+	return hash[:]
 }

@@ -11,174 +11,218 @@
 </head>
 
 <body>
-    <div class="container">
-        <div class="columns is-centered">
-            <div class="column is-half">
-                <div class="content">
-                    <h1>🐯 Login In {{.client_name}}</h1>
-                </div>
-                <div id="msgDiv"></div>
+<div class="container">
+    <div class="columns is-centered">
+        <div class="column is-half">
+            <div class="content">
+                <h1>🐯 Login In {{.client_name}}</h1>
             </div>
-        </div>
-        <div class="columns is-centered">
-            <div class="column is-half">
-                <form action="/login" method="POST" onsubmit="return onFormSubmit(event)">
-                    <div class="field">
-                        <label class="label">E-Mail</label>
-                        <div class="control has-icons-left">
-                            <input class="input" type="email" name="email" placeholder="e.g. hello@example.com"
-                                required>
-                            <span class="icon is-small is-left">
-                                <i class="fas fa-envelope"></i>
-                            </span>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <p class="control has-icons-left">
-                            <input class="input" type="password" name="password" placeholder="Password">
-                            <span class="icon is-small is-left">
-                                <i class="fas fa-lock"></i>
-                            </span>
-                        </p>
-                    </div>
-                    <div class="cf-turnstile" data-sitekey="{{.site_key}}" data-callback="turnstileCallback"></div>
-                    <div class="field">
-                        <div class="control">
-                            <button type="submit" class="button is-primary is-fullwidth" id="loginBtn"
-                                disabled>Login</button>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="control">
-                            <button type="button" class="button is-fullwidth" id="tgLoginBtn" disabled
-                                onclick="toggleTelegramModal()">Login By Telegram</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <div class="modal" id="telegramModal">
-            <div class="modal-background" onclick="toggleTelegramModal()"></div>
-            <div class="modal-content">
-                <div class="card">
-                    <div class="card-content">
-                        <script async src="https://telegram.org/js/telegram-widget.js?22"
-                            data-telegram-login="{{.bot_name}}" data-size="large" data-onauth="onTelegramAuth(user)"
-                            data-request-access="write"></script>
-                    </div>
-                </div>
-            </div>
-            <button class="modal-close is-large" aria-label="close" onclick="toggleTelegramModal()"></button>
+            <div id="msgDiv"></div>
         </div>
     </div>
-
-    <script>
-        let cfToken = null;
-        /**
-         * @param {string} token
-         */
-        window.turnstileCallback = function (token) {
-            console.log("verified", token);
-            cfToken = token;
-            setLoginBtnDisable(false);
-        };
-
-        function setLoginBtnDisable(disabled) {
-            document.getElementById('loginBtn').disabled = disabled;
-            document.getElementById('tgLoginBtn').disabled = disabled;
-        }
-
-        function toggleTelegramModal() {
-            const activeClassName = "is-active";
-            const m = document.getElementById("telegramModal");
-            if (m.classList.contains(activeClassName)) {
-                m.classList.remove(activeClassName);
-            } else {
-                m.classList.add(activeClassName);
-            }
-        }
-
-        /**
-         * @typedef {Object} User
-         * @property {string} first_name - 用户的名字
-         * @property {string} last_name - 用户的姓氏
-         * @property {number} id - 用户的ID
-         * @property {string} [username] - 用户的用户名（可选）
-         */
-
-        /**
-         * @param {User} user
-         */
-        function onTelegramAuth(user) {
-            console.info('telegram login', user);
-            if (!cfToken) {
-                console.warn('turnstile is not validated yet');
-                document.getElementById("telegramModal").classList.remove("is-active");
-                return;
-            }
-            const formData = {
-                providerType: "Telegram",
-                cfToken: form['cf-turnstile-response'].value,
-                data: user
-            };
-            setLoginBtnDisable(true);
-            loginReq(formData).then(() => window.location.replace("/auth")).finally(() => setLoginBtnDisable(false));
-        }
-
-        /**
-         * @param {Event} event
-         */
-        function onFormSubmit(event) {
-            const form = event.target;
-            if (!form.checkValidity()) {
-                return true;
-            }
-            event.preventDefault();
-
-            const formData = {
-                provider_type: "EmailPassword",
-                cf_token: form['cf-turnstile-response'].value,
-                login_key: form.email.value,
-                data: {
-                    password: form.password.value,
-                }
-            };
-            setLoginBtnDisable(true);
-            loginReq(formData)
-                .then(r => r.json())
-                .then(j => {
-                    console.log(j);
-                    if (j.code !== 0) {
-                        document.getElementById("msgDiv").innerHTML = `
-                        <div class="notification is-danger">
-                            <button class="delete"></button>
-                            Invalid Credentials
-                        </div>
-                        `
-                    } else {
-                        window.location.replace("/auth")
-                    }
-                })
-                .finally(() => setLoginBtnDisable(false));
-            return false;
-        }
-
-        function loginReq(body) {
-            return fetch("/login", {
-                method: "POST",
-                body: JSON.stringify(body)
-            }).catch(e => {
-                console.log("err", e);
-                document.getElementById("msgDiv").innerHTML = `
-                <div class="notification is-danger">
-                    <button class="delete"></button>
-                    ${e}
+    <div class="columns is-centered">
+        <div class="column is-half">
+            <form action="/login" method="POST" id="loginForm">
+                <div class="field">
+                    <label class="label" for="email">E-Mail</label>
+                    <div class="control has-icons-left">
+                        <input class="input" type="email" name="email" id="email" placeholder="e.g. hello@example.com"
+                               required>
+                        <span class="icon is-small is-left">
+                                <i class="fas fa-envelope"></i>
+                            </span>
+                    </div>
                 </div>
-                `
-            });
-        }
+                <div class="field">
+                    <p class="control has-icons-left">
+                        <input class="input" type="password" name="password" placeholder="Password">
+                        <span class="icon is-small is-left">
+                                <i class="fas fa-lock"></i>
+                            </span>
+                    </p>
+                </div>
+                <div class="cf-turnstile" data-sitekey="{{.site_key}}" data-callback="turnstileCallback"></div>
+                <div class="field">
+                    <div class="control">
+                        <button type="submit" class="button is-primary is-fullwidth" id="loginBtn"
+                                disabled>Login
+                        </button>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="control">
+                        <button type="button" class="button is-fullwidth" id="tgLoginBtn" disabled
+                                onclick="toggleTelegramModal(true)">Login By Telegram
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="modal" id="telegramModal">
+        <div class="modal-background" onclick="toggleTelegramModal(false)"></div>
+        <div class="modal-content">
+            <div class="card">
+                <div class="card-content">
+                    <script async src="https://telegram.org/js/telegram-widget.js?22"
+                            data-telegram-login="{{.bot_name}}" data-size="large" data-onauth="onTelegramAuth(user)"
+                            data-request-access="write"></script>
+                </div>
+            </div>
+        </div>
+        <button class="modal-close is-large" aria-label="close" onclick="toggleTelegramModal(false)"></button>
+    </div>
+</div>
 
-    </script>
+<script>
+    /**
+     * @typedef {Object} User
+     * @property {string} first_name - 用户的名字
+     * @property {string} last_name - 用户的姓氏
+     * @property {number} id - 用户的ID
+     * @property {string} [username] - 用户的用户名（可选）
+     */
+
+    /**
+     * @type {string}
+     */
+    let cfToken = undefined;
+    /**
+     * @type {User}
+     */
+    let tgUser = undefined;
+    /**
+     * @param {string} token
+     */
+    window.turnstileCallback = function (token) {
+        console.log("verified", token);
+        cfToken = token;
+        setLoginBtnDisable(false);
+    };
+
+    function setLoginBtnDisable(disabled) {
+        document.getElementById('loginBtn').disabled = disabled;
+        document.getElementById('tgLoginBtn').disabled = disabled;
+    }
+
+    /**
+     * @param {boolean} open
+     */
+    function toggleTelegramModal(open) {
+        const activeClassName = "is-active";
+        const m = document.getElementById("telegramModal");
+        if (open) {
+            m.classList.add(activeClassName);
+        } else {
+            m.classList.remove(activeClassName);
+        }
+    }
+
+    /**
+     * @param {boolean} open
+     */
+    function toggleTelegramRegModal(open) {
+        const activeClassName = "is-active";
+        const m = document.getElementById("telegramRegModal");
+        if (open) {
+            m.classList.add(activeClassName);
+        } else {
+            m.classList.remove(activeClassName);
+        }
+    }
+
+    /**
+     * @param {User} user
+     */
+    function onTelegramAuth(user) {
+        console.info('telegram login', user);
+        tgUser = user;
+        if (!cfToken) {
+            console.warn('turnstile is not validated yet');
+            document.getElementById("telegramModal").classList.remove("is-active");
+            return;
+        }
+        const formData = {
+            provider_type: "Telegram",
+            cf_token: cfToken,
+            login_key: tgUser.id.toString(),
+            data: tgUser
+        };
+        setLoginBtnDisable(true);
+        loginReq(formData).then(r => r.json()).then(j => {
+            console.log("login resp", j);
+            if (j.code === 0) {
+                if (!j.data?.user) {
+                    window.location.replace("/registration");
+                } else {
+                    window.location.replace("/auth");
+                }
+            }
+        }).finally(() => setLoginBtnDisable(false));
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', (event) => {
+        const form = event.target;
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            return;
+        }
+        event.preventDefault();
+
+        const formData = {
+            provider_type: "EmailPassword",
+            cf_token: cfToken,
+            login_key: form.email.value,
+            data: {
+                password: form.elements["password"].value,
+            }
+        };
+        setLoginBtnDisable(true);
+        loginReq(formData)
+            .then(r => r.json())
+            .then(j => {
+                console.log(j);
+                if (j.code !== 0) {
+                    showErrorMessage("Internal Server Error");
+                } else if (!j.data.user) {
+                    showErrorMessage("Invalid Credentials");
+                } else {
+                    window.location.replace("/auth")
+                }
+            })
+            .finally(() => setLoginBtnDisable(false));
+    });
+
+    function loginReq(body) {
+        return fetch("/login", {
+            method: "POST",
+            body: JSON.stringify(body)
+        }).catch(e => {
+            console.log("login err", e);
+            showErrorMessage("Network Error");
+        });
+    }
+
+    function regReq(body) {
+        return fetch("/reg", {
+            method: "POST",
+            body: JSON.stringify(body)
+        }).catch(e => {
+            console.log("reg err", e);
+            showErrorMessage("Network Error");
+        });
+    }
+
+    function showErrorMessage(message) {
+        document.getElementById("msgDiv").innerHTML = `
+        <div class="notification is-danger">
+            <button class="delete"></button>
+            ${message}
+        </div>
+        `
+    }
+
+</script>
 </body>
 
 </html>

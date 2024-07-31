@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func jwkSetHandler(w http.ResponseWriter, r *http.Request) {
+func jwkSetHandler(w http.ResponseWriter, _ *http.Request) {
 	var keys []map[string]string
 	for _, key := range oauth2.JWTKeys {
 		keys = append(keys, key.ToJWK())

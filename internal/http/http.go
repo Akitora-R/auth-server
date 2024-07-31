@@ -64,3 +64,13 @@ func renderHtml(w http.ResponseWriter, tplName string, code int, data any) error
 	w.WriteHeader(code)
 	return tpl.ExecuteTemplate(w, tplName, data)
 }
+
+func responseJson(w http.ResponseWriter, code int, data any) {
+	w.Header().Set("Content-Type", "application/json")
+	if code == 0 {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	_ = json.NewEncoder(w).Encode(map[string]any{"code": code, "data": data})
+}

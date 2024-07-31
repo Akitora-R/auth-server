@@ -15,7 +15,7 @@ type AuthUserProvider struct {
 	ID           int64           `db:"id"`
 	UserID       int64           `db:"user_id"`
 	LoginKey     string          `db:"login_key"`
-	ProviderType ProviderType    `db:"provider_type"`
+	ProviderType *ProviderType   `db:"provider_type"`
 	ProviderData json.RawMessage `db:"provider_data"`
 	BaseModel
 }
@@ -27,16 +27,48 @@ const (
 	ProviderTelegram
 )
 
-func (t *ProviderType) Value() (driver.Value, error) {
-	v := *t
-	switch v {
-	case ProviderEmailPassword:
-		return "EmailPassword", nil
-	case ProviderTelegram:
-		return "Telegram", nil
+func stringToProviderType(s string) (ProviderType, error) {
+	switch s {
+	case "EmailPassword":
+		return ProviderEmailPassword, nil
+	case "Telegram":
+		return ProviderTelegram, nil
 	default:
-		return nil, fmt.Errorf("unknown ProviderType: %v", t)
+		return 0, fmt.Errorf("unknown ProviderType: %s", s)
 	}
+}
+
+func (t *ProviderType) UnmarshalJSON(bytes []byte) error {
+	var s string
+	if err := json.Unmarshal(bytes, &s); err != nil {
+		return err
+	}
+	providerType, err := stringToProviderType(s)
+	if err != nil {
+		return err
+	}
+	*t = providerType
+	return nil
+}
+
+func (t *ProviderType) String() string {
+	providerType := *t
+	switch providerType {
+	case ProviderEmailPassword:
+		return "EmailPassword"
+	case ProviderTelegram:
+		return "Telegram"
+	default:
+		return "unknown"
+	}
+}
+
+func (t *ProviderType) Value() (driver.Value, error) {
+	s := t.String()
+	if s == "unknown" {
+		return nil, fmt.Errorf("unknown value %s", s)
+	}
+	return s, nil
 }
 
 func (t *ProviderType) Scan(value any) error {
@@ -47,17 +79,14 @@ func (t *ProviderType) Scan(value any) error {
 	case string:
 		strVal = value.(string)
 	default:
-		return fmt.Errorf("TokenType must be a string, got %T", value)
+		return fmt.Errorf("ProviderType must be a string, got %T", value)
 	}
 
-	switch strVal {
-	case "EmailPassword":
-		*t = ProviderEmailPassword
-	case "Telegram":
-		*t = ProviderTelegram
-	default:
-		return fmt.Errorf("unknown TokenType: %s", strVal)
+	providerType, err := stringToProviderType(strVal)
+	if err != nil {
+		return err
 	}
+	*t = providerType
 	return nil
 }
 

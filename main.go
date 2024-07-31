@@ -16,10 +16,10 @@ func main() {
 	mux := oauth2Http.CreateMux(srv)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
+	addr := fmt.Sprintf("%s:%d", internal.AuthServerConfig.Host, internal.AuthServerConfig.Port)
 	go func() {
-		log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", internal.AuthServerConfig.Host, internal.AuthServerConfig.Port), mux))
-		defer wg.Done()
+		log.Fatal(http.ListenAndServe(addr, mux))
 	}()
-	slog.Info("Server started.")
+	slog.Info("Server started.", "addr", addr)
 	wg.Wait()
 }
