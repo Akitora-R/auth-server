@@ -73,11 +73,11 @@ func (t *ProviderType) Value() (driver.Value, error) {
 
 func (t *ProviderType) Scan(value any) error {
 	var strVal string
-	switch value.(type) {
+	switch v := value.(type) {
 	case []uint8:
-		strVal = string(value.([]uint8))
+		strVal = string(v)
 	case string:
-		strVal = value.(string)
+		strVal = v
 	default:
 		return fmt.Errorf("ProviderType must be a string, got %T", value)
 	}

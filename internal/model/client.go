@@ -1,6 +1,10 @@
 package model
 
-import "github.com/go-oauth2/oauth2/v4"
+import (
+	"slices"
+
+	"github.com/go-oauth2/oauth2/v4"
+)
 
 type ScopedClientInfo interface {
 	oauth2.ClientInfo
@@ -48,12 +52,7 @@ func (c *AuthClient) GetScopes() []string {
 }
 
 func (c *AuthClient) HasScope(scope string) bool {
-	for _, s := range c.Scopes {
-		if s == scope {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.Scopes, scope)
 }
 
 func (c *AuthClient) GetTokenType() TokenType {
