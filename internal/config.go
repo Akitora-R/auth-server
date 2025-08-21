@@ -30,9 +30,10 @@ type Config struct {
 		Host string `yaml:"host"`
 		Port string `yaml:"port"`
 	} `yaml:"redis"`
-	DB         string      `yaml:"db"`
-	JWT        []JWTConfig `yaml:"jwt"`
-	Cloudflare struct {
+	DB           string      `yaml:"db"`
+	DBSearchPath string      `yaml:"db-search-path"`
+	JWT          []JWTConfig `yaml:"jwt"`
+	Cloudflare   struct {
 		Turnstile struct {
 			Key    string `yaml:"key"`
 			Secret string `yaml:"secret"`
@@ -89,6 +90,10 @@ func setDefaultValues() {
 		// Default PostgreSQL DSN (disable ssl for local dev)
 		AuthServerConfig.DB = "postgres://postgres:postgres@localhost:5432/auth?sslmode=disable"
 		slog.Debug("set default db address", "dsn", AuthServerConfig.DB)
+	}
+	if AuthServerConfig.DBSearchPath == "" {
+		AuthServerConfig.DBSearchPath = "auth"
+		slog.Debug("set default db search_path", "schema", AuthServerConfig.DBSearchPath)
 	}
 	if len(AuthServerConfig.JWT) == 0 {
 		keySize := 2048
