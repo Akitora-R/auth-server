@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-session/session"
 	"log/slog"
 	"time"
+
+	"github.com/go-session/session"
 )
 
 var UserRepo UserStore = &MySQLUserStore{}
@@ -25,7 +26,7 @@ type MySQLUserStore struct {
 
 func (m *MySQLUserStore) GetUserByID(id int64) (model.UserInfo, error) {
 	user := model.AuthUser{}
-	if err := internal.DB.Get(&user, "select * from auth_user where id = ?", id); err != nil {
+	if err := internal.DB.Get(&user, "select * from auth_user where id = $1", id); err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -38,7 +39,7 @@ func (m *MySQLUserStore) GetUserByCredentials(
 	sessionStore session.Store,
 ) (model.UserInfo, error) {
 	var providers []model.AuthUserProvider
-	if err := internal.DB.Select(&providers, `select * from auth_user_provider where login_key = ? and provider_type = ?`, loginKey, providerType); err != nil {
+	if err := internal.DB.Select(&providers, `select * from auth_user_provider where login_key = $1 and provider_type = $2`, loginKey, providerType); err != nil {
 		return nil, err
 	}
 	if len(providers) <= 0 {
@@ -109,7 +110,7 @@ func (m *MySQLUserStore) AddUser(user model.UserInfo, provider model.AuthUserPro
 	}()
 
 	var uCount = 0
-	if err = tx.Get(&uCount, "SELECT COUNT(*) FROM auth_user WHERE email = ?", user.GetEmail()); err != nil {
+	if err = tx.Get(&uCount, "SELECT COUNT(*) FROM auth_user WHERE email = $1", user.GetEmail()); err != nil {
 		return err
 	}
 
@@ -117,18 +118,19 @@ func (m *MySQLUserStore) AddUser(user model.UserInfo, provider model.AuthUserPro
 		return errors.New("user_exists")
 	}
 
-	insertUserSql := `INSERT INTO auth.auth_user (email, display_name, created_at, updated_at) 
-              VALUES (:email, :display_name, :created_at, :updated_at)`
-
-	result, err := tx.NamedExec(insertUserSql, e)
+	insertUserSql := `INSERT INTO auth_user (email, display_name, created_at, updated_at) 
+	              VALUES (:email, :display_name, :created_at, :updated_at) RETURNING id`
+	rows, err := tx.NamedQuery(insertUserSql, e)
 	if err != nil {
 		return err
 	}
-
-	userID, err := result.LastInsertId()
-	if err != nil {
-		return err
+	var userID int64
+	if rows.Next() {
+		if err = rows.Scan(&userID); err != nil {
+			return err
+		}
 	}
+	_ = rows.Close()
 
 	// Insert provider data
 	provider.UserID = userID
@@ -137,8 +139,8 @@ func (m *MySQLUserStore) AddUser(user model.UserInfo, provider model.AuthUserPro
 		UpdatedAt: &now,
 	}
 
-	insertProviderSql := `INSERT INTO auth.auth_user_provider (user_id, login_key, provider_type, provider_data, created_at, updated_at)
-              VALUES (:user_id, :login_key, :provider_type, :provider_data, :created_at, :updated_at)`
+	insertProviderSql := `INSERT INTO auth_user_provider (user_id, login_key, provider_type, provider_data, created_at, updated_at)
+	              VALUES (:user_id, :login_key, :provider_type, :provider_data, :created_at, :updated_at)`
 
 	_, err = tx.NamedExec(insertProviderSql, provider)
 	if err != nil {
