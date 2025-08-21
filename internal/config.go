@@ -128,7 +128,7 @@ func resolveEnv(cfg *Config) {
 
 func resolveStruct(v reflect.Value) {
 	t := v.Type()
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		field := v.Field(i)
 		fieldType := t.Field(i)
 
