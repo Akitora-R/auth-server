@@ -2,37 +2,21 @@ package http
 
 import (
 	"auth-server/internal"
+	"auth-server/internal/model"
+	"auth-server/internal/store"
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"math/rand"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
-	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/go-resty/resty/v2"
-	"github.com/go-session/session"
 )
 
 var tpl = template.Must(template.New("").ParseGlob("template/*"))
-
-type AuthHandler func(srv *server.Server) http.HandlerFunc
-
-// var authHandlers = map[string]AuthHandler{}
-
-func CreateMux(srv *server.Server) *http.ServeMux {
-	session.SetExpired(15 * 60)
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", indexHandler)
-	mux.HandleFunc(internal.PathLogin, loginHandler)
-	mux.HandleFunc(internal.PathAuth, getAuthHandler())
-	mux.HandleFunc(internal.PathAuthorize, getAuthorizeHandler(srv))
-	mux.HandleFunc(internal.PathToken, getTokenHandler(srv))
-	mux.HandleFunc(internal.PathIntrospect, getIntrospectHandler(srv))
-	mux.HandleFunc(internal.PathUserinfo, getUserinfoHandler(srv))
-	mux.HandleFunc(internal.PathJwkSet, jwkSetHandler)
-	mux.HandleFunc(internal.PathRegistration, getRegistrationHandler(srv))
-	return mux
-}
 
 type TurnstileResp struct {
 	Success     bool      `json:"success"`
@@ -73,4 +57,90 @@ func responseJson(w http.ResponseWriter, code int, data any) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{"code": code, "data": data})
+}
+
+// ================= Admin: Clients =================
+
+type adminClientPageData struct {
+	Clients  []model.AuthClient
+	ErrorMsg string
+}
+
+func getAdminClientsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		clients, err := store.ClientRepo.(*store.MySQLClientStore).List(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("failed to load clients"))
+			return
+		}
+		_ = renderHtml(w, "admin_clients.gohtml", http.StatusOK, adminClientPageData{Clients: clients})
+	}
+}
+
+func postAdminClientNewHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if err := r.ParseForm(); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte("invalid form"))
+			return
+		}
+		name := r.FormValue("display_name")
+		domain := r.FormValue("domain")
+		scopesStr := r.FormValue("scopes")
+		secret := r.FormValue("secret")
+		tokenTypeStr := r.FormValue("token_type")
+		if secret == "" {
+			secret = generateRandomSecret(32)
+		}
+		ttInt, _ := strconv.Atoi(tokenTypeStr)
+		tt := model.TokenType(ttInt)
+		scopes := []string{}
+		for _, s := range strings.Split(scopesStr, ",") {
+			s = strings.TrimSpace(s)
+			if s != "" {
+				scopes = append(scopes, s)
+			}
+		}
+		c := &model.AuthClient{DisplayName: name, Domain: domain, Secret: secret, Scopes: scopes, TokenType: &tt}
+		if err := store.ClientRepo.(*store.MySQLClientStore).Create(r.Context(), c); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("create failed: " + err.Error()))
+			return
+		}
+		http.Redirect(w, r, internal.PathAdminClients, http.StatusFound)
+	}
+}
+
+func postAdminClientDelHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if err := r.ParseForm(); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		id := r.FormValue("id")
+		if id != "" {
+			_ = store.ClientRepo.(*store.MySQLClientStore).Delete(r.Context(), id)
+		}
+		http.Redirect(w, r, internal.PathAdminClients, http.StatusFound)
+	}
+}
+
+// simple random secret generator (non-crypto for admin convenience)
+func generateRandomSecret(n int) string {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, n)
+	rand.Seed(time.Now().UnixNano())
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }

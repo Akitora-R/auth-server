@@ -5,21 +5,16 @@ import (
 	oauth2Http "auth-server/internal/http"
 	"auth-server/internal/oauth2"
 	"fmt"
-	"log"
 	"log/slog"
-	"net/http"
-	"sync"
 )
 
 func main() {
 	srv := oauth2.InitServer()
-	mux := oauth2Http.CreateMux(srv)
-	wg := sync.WaitGroup{}
-	wg.Add(1)
+	engine := oauth2Http.CreateGinEngine(srv)
 	addr := fmt.Sprintf("%s:%d", internal.AuthServerConfig.Host, internal.AuthServerConfig.Port)
-	go func() {
-		log.Fatal(http.ListenAndServe(addr, mux))
-	}()
 	slog.Info("Server started.", "addr", addr)
-	wg.Wait()
+	// gin Engine.Run 内部处理优雅关闭信号
+	if err := engine.Run(addr); err != nil {
+		slog.Error("server exit", "err", err)
+	}
 }

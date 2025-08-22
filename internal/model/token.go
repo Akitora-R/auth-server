@@ -64,3 +64,15 @@ func (t *TokenType) Scan(value any) error {
 
 	return nil
 }
+
+// String returns the textual name of the token type
+func (t TokenType) String() string {
+	switch t {
+	case OpaqueToken:
+		return "OpaqueToken"
+	case JWT:
+		return "JWT"
+	default:
+		return fmt.Sprintf("Unknown(%d)", int(t))
+	}
+}

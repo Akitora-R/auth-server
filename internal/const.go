@@ -20,4 +20,10 @@ const (
 	PathUserinfo     = "/userinfo"
 	PathRegistration = "/registration"
 	PathJwkSet       = "/.well-known/jwks.json"
+
+	// Admin paths
+	PathAdminClients    = "/admin/clients"
+	PathAdminClientNew  = "/admin/clients/new"
+	PathAdminClientEdit = "/admin/clients/edit"   // query param id
+	PathAdminClientDel  = "/admin/clients/delete" // query param id
 )
