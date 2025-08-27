@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-    <meta charset="UTF-8">
     <title>Client 管理</title>
+    {{template "head_common" .}}
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
 </head>
 <body>
+{{template "navbar" .}}
 <section class="section">
     <div class="container">
         <h1 class="title">Client 管理</h1>
@@ -94,6 +94,7 @@
             </tbody>
         </table>
     </div>
+{{template "footer" .}}
 </section>
 </body>
 </html>
