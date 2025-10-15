@@ -10,10 +10,10 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/go-session/session"
+	"github.com/go-session/session/v3"
 )
 
-var UserRepo UserStore = &MySQLUserStore{}
+var UserRepo UserStore = &DbUserStore{}
 
 type UserStore interface {
 	GetUserByID(id int64) (model.UserInfo, error)
@@ -21,10 +21,10 @@ type UserStore interface {
 	AddUser(user model.UserInfo, provider model.AuthUserProvider) error
 }
 
-type MySQLUserStore struct {
+type DbUserStore struct {
 }
 
-func (m *MySQLUserStore) GetUserByID(id int64) (model.UserInfo, error) {
+func (m *DbUserStore) GetUserByID(id int64) (model.UserInfo, error) {
 	user := model.AuthUser{}
 	if err := internal.DB.Get(&user, "select * from auth_user where id = $1", id); err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func (m *MySQLUserStore) GetUserByID(id int64) (model.UserInfo, error) {
 	return &user, nil
 }
 
-func (m *MySQLUserStore) GetUserByCredentials(
+func (m *DbUserStore) GetUserByCredentials(
 	loginKey string,
 	providerType *model.ProviderType,
 	data json.RawMessage,
@@ -80,7 +80,7 @@ func (m *MySQLUserStore) GetUserByCredentials(
 	}
 }
 
-func (m *MySQLUserStore) AddUser(user model.UserInfo, provider model.AuthUserProvider) error {
+func (m *DbUserStore) AddUser(user model.UserInfo, provider model.AuthUserProvider) error {
 	now := time.Now()
 	e := model.AuthUser{
 		Email:       user.GetEmail(),

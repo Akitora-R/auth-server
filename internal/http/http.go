@@ -68,7 +68,7 @@ type adminClientPageData struct {
 
 func getAdminClientsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		clients, err := store.ClientRepo.(*store.MySQLClientStore).List(r.Context())
+		clients, err := store.ClientRepo.(*store.DbClientStore).List(r.Context())
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte("failed to load clients"))
@@ -107,7 +107,7 @@ func postAdminClientNewHandler() http.HandlerFunc {
 			}
 		}
 		c := &model.AuthClient{DisplayName: name, Domain: domain, Secret: secret, Scopes: scopes, TokenType: &tt}
-		if err := store.ClientRepo.(*store.MySQLClientStore).Create(r.Context(), c); err != nil {
+		if err := store.ClientRepo.(*store.DbClientStore).Create(r.Context(), c); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte("create failed: " + err.Error()))
 			return
@@ -128,7 +128,7 @@ func postAdminClientDelHandler() http.HandlerFunc {
 		}
 		id := r.FormValue("id")
 		if id != "" {
-			_ = store.ClientRepo.(*store.MySQLClientStore).Delete(r.Context(), id)
+			_ = store.ClientRepo.(*store.DbClientStore).Delete(r.Context(), id)
 		}
 		http.Redirect(w, r, internal.PathAdminClients, http.StatusFound)
 	}

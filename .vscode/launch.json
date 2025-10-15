@@ -9,10 +9,11 @@
             "name": "Launch Package",
             "type": "go",
             "request": "launch",
-            "mode": "auto",
+            "mode": "debug",
             "program": "${workspaceRoot}",
-            "console": "internalConsole",
-            "envFile": "${workspaceFolder}/.env"
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env",
+            "asRoot": true
         }
     ]
 }

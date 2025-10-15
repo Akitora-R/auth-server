@@ -6,7 +6,7 @@ import (
 	storeImpl "auth-server/internal/store"
 	"net/http"
 
-	"github.com/go-session/session"
+	"github.com/go-session/session/v3"
 )
 
 func getAuthHandler() http.HandlerFunc {
@@ -16,7 +16,8 @@ func getAuthHandler() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if _, ok := s.Get(internal.SessionKeyUserID); !ok {
+		uVal, ok := s.Get(internal.SessionKeyUserID)
+		if !ok {
 			w.Header().Set("Location", internal.PathLogin)
 			w.WriteHeader(http.StatusFound)
 			return
@@ -55,6 +56,10 @@ func getAuthHandler() http.HandlerFunc {
 			return
 		}
 		data["scopeRequested"] = scopes
+		// 将用户信息注入模板，便于展示昵称/邮箱等
+		sessionUser := uVal.(*model.SessionUserInfo)
+		data["user"] = sessionUser.User
+		data["sessionUser"] = sessionUser
 
 		_ = renderHtml(w, "auth.gohtml", 200, data)
 	}

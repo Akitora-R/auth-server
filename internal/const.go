@@ -9,6 +9,7 @@ const (
 	SessionKeyScopeConsented = "scopeConsented"
 	SessionKeyResponseType   = "responseType"
 	SessionKeyTelegramData   = "telegramData"
+	SessionKeyNext           = "next"
 )
 
 const (
@@ -26,4 +27,10 @@ const (
 	PathAdminClientNew  = "/admin/clients/new"
 	PathAdminClientEdit = "/admin/clients/edit"   // query param id
 	PathAdminClientDel  = "/admin/clients/delete" // query param id
+)
+
+// 登录页 next 参数
+const (
+	NextAuth  = "auth"
+	NextAdmin = "admin"
 )

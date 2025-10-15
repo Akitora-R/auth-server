@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/go-oauth2/oauth2/v4/server"
-	"github.com/go-session/session"
+	"github.com/go-session/session/v3"
 )
 
 type regReq struct {
@@ -106,8 +106,10 @@ func handleRegPage(w http.ResponseWriter, s session.Store) {
 		http.Error(w, "failed to read user data", http.StatusInternalServerError)
 		return
 	}
+	next, _ := s.Get(internal.SessionKeyNext)
 	_ = renderHtml(w, "registration.gohtml", 200, map[string]any{
 		"tgData":   tgData,
 		"site_key": internal.AuthServerConfig.Cloudflare.Turnstile.Key,
+		"next":     next,
 	})
 }

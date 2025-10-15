@@ -10,6 +10,7 @@
 
 <body>
 {{template "navbar" .}}
+<main class="layout-main">
 <section class="section">
     <div class="container">
         <div class="columns is-centered">
@@ -36,8 +37,9 @@
             </div>
         </div>
     </div>
+    </section>
+</main>
 {{template "footer" .}}
-</section>
 <script>
     /**
      * @type {string}
@@ -83,7 +85,7 @@
             showErrorMessage("Network Error");
         }).then(r => r.json()).then(j => {
             if (j.code === 0) {
-                window.location.replace("/login");
+                window.location.replace("/login?next=" + encodeURIComponent("{{.next}}"));
             } else {
                 console.error(j);
                 showErrorMessage(JSON.stringify(j));

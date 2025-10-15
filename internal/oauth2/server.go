@@ -14,7 +14,7 @@ import (
 	"github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/go-oauth2/oauth2/v4/manage"
 	"github.com/go-oauth2/oauth2/v4/server"
-	"github.com/go-session/session"
+	"github.com/go-session/session/v3"
 )
 
 func InitServer() *server.Server {
@@ -71,7 +71,8 @@ func userAuthorizeHandler(w http.ResponseWriter, r *http.Request) (userID string
 		http.Error(w, "failed to read session data", http.StatusInternalServerError)
 		return
 	}
-	userID = strconv.FormatInt(uid.(int64), 10)
+	sessionUser := uid.(*model.SessionUserInfo)
+	userID = strconv.FormatInt(sessionUser.User.ID, 10)
 	return
 }
 

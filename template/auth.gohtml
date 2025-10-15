@@ -8,6 +8,7 @@
 
 <body>
 {{template "navbar" .}}
+<main class="layout-main">
 <section class="section">
     <div class="container">
         <h1 class="title">Authorize</h1>
@@ -39,8 +40,9 @@
             </form>
         </div>
     </div>
-    {{template "footer" .}}
-</section>
+    </section>
+</main>
+{{template "footer" .}}
 </body>
 
 </html>

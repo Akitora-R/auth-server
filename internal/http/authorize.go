@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/go-oauth2/oauth2/v4/server"
-	"github.com/go-session/session"
+	"github.com/go-session/session/v3"
 )
 
 func getAuthorizeHandler(srv *server.Server) http.HandlerFunc {
@@ -44,11 +44,12 @@ func getAuthorizeHandler(srv *server.Server) http.HandlerFunc {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			w.Header().Set("Location", internal.PathLogin)
+			w.Header().Set("Location", internal.PathLogin+"?next="+internal.NextAuth)
 			w.WriteHeader(http.StatusFound)
 			return
 		}
-		slog.Info("logging for logged user", "user_id", uid)
+		sessionUser := uid.(*model.SessionUserInfo)
+		slog.Info("logging for logged user", "user_id", sessionUser.User.ID)
 
 		if consented := r.Form["consented"]; len(consented) > 0 {
 			var consents []model.ScopeInfo
@@ -66,7 +67,7 @@ func getAuthorizeHandler(srv *server.Server) http.HandlerFunc {
 				return
 			}
 		} else if _, ok = s.Get(internal.SessionKeyScopeConsented); !ok {
-			slog.Debug("logged but not consented", "user_id", uid, "redirect", internal.PathAuth)
+			slog.Debug("logged but not consented", "user_id", sessionUser.User.ID, "redirect", internal.PathAuth)
 			w.Header().Set("Location", internal.PathAuth)
 			w.WriteHeader(http.StatusFound)
 			return

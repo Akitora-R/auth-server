@@ -9,7 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-oauth2/oauth2/v4/server"
-	"github.com/go-session/session"
+	"github.com/go-session/session/v3"
 )
 
 // CreateGinEngine builds a gin.Engine replacing the previous net/http mux.
@@ -34,8 +34,9 @@ func CreateGinEngine(srv *server.Server) *gin.Engine {
 	r.GET("/", gin.WrapF(indexHandler))
 
 	// Auth related
-	r.GET(internal.PathLogin, gin.WrapF(loginHandler))
-	r.POST(internal.PathLogin, gin.WrapF(loginHandler))
+	loginHandler := getLoginHandler()
+	r.GET(internal.PathLogin, loginHandler)
+	r.POST(internal.PathLogin, loginHandler)
 	r.GET(internal.PathAuthorize, gin.WrapF(getAuthorizeHandler(srv)))
 	r.POST(internal.PathAuthorize, gin.WrapF(getAuthorizeHandler(srv)))
 	r.GET(internal.PathAuth, gin.WrapF(getAuthHandler()))

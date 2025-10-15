@@ -8,8 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-oauth2/oauth2/v4 v4.5.4
 	github.com/go-resty/resty/v2 v2.12.0
-	github.com/go-session/session v3.1.2+incompatible
-	github.com/go-sql-driver/mysql v1.6.0
+	github.com/go-session/session/v3 v3.2.1
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.5.5
@@ -19,6 +18,7 @@ require (
 )
 
 require (
+	github.com/bytedance/gopkg v0.0.0-20221122125632-68358b8ecec6 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
