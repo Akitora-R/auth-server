@@ -2,6 +2,8 @@ package http
 
 import (
 	"auth-server/internal"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"log/slog"
 	"net/http"
@@ -47,10 +49,14 @@ func CreateGinEngine(srv *server.Server) *gin.Engine {
 	r.GET(internal.PathRegistration, gin.WrapF(getRegistrationHandler(srv)))
 	r.POST(internal.PathRegistration, gin.WrapF(getRegistrationHandler(srv)))
 
-	// Admin clients
-	r.GET(internal.PathAdminClients, gin.WrapF(getAdminClientsHandler()))
-	r.POST(internal.PathAdminClientNew, gin.WrapF(postAdminClientNewHandler()))
-	r.POST(internal.PathAdminClientDel, gin.WrapF(postAdminClientDelHandler()))
+	// Admin routes
+	adminGroup := r.Group("/admin")
+	adminGroup.Use(adminAuthMiddleware())
+	{
+		adminGroup.GET("/client", gin.WrapF(getAdminClientsHandler()))
+		adminGroup.POST("/client/new", gin.WrapF(postAdminClientNewHandler()))
+		adminGroup.POST("/client/del", gin.WrapF(postAdminClientDelHandler()))
+	}
 
 	// 404 fallback
 	r.NoRoute(func(c *gin.Context) {
@@ -68,7 +74,7 @@ func ginSlogLogger() gin.HandlerFunc {
 		rawQuery := c.Request.URL.RawQuery
 		method := c.Request.Method
 		clientIP := c.ClientIP()
-		ua := c.Request.UserAgent()
+		uaShort, uaHash, uaLen := compactUA(c.Request.UserAgent())
 		c.Next()
 		latency := time.Since(start)
 		status := c.Writer.Status()
@@ -91,10 +97,34 @@ func ginSlogLogger() gin.HandlerFunc {
 			"method", method,
 			"path", path,
 			"ip", clientIP,
-			"ua", ua,
+			// Compact UA to avoid excessively long log lines while keeping correlation
+			"ua", uaShort,
+			"ua_len", uaLen,
+			"ua_hash", uaHash,
 			"latency_ms", latency.Milliseconds(),
 			"resp_bytes", size,
 			"err", errMsg,
 		)
 	}
+}
+
+// maxUALength caps the length of the UA string recorded in logs.
+const maxUALength = 128
+
+// compactUA returns a truncated UA (at most maxUALength runes),
+// a short stable hash for correlation, and the original length.
+func compactUA(ua string) (short string, hash string, length int) {
+	length = len(ua)
+	// Stable short hash (first 8 bytes of sha256 => 16 hex chars)
+	sum := sha256.Sum256([]byte(ua))
+	hash = hex.EncodeToString(sum[:8])
+
+	// Truncate by runes to avoid breaking multibyte characters
+	r := []rune(ua)
+	if len(r) > maxUALength {
+		short = string(r[:maxUALength]) + "…"
+	} else {
+		short = ua
+	}
+	return
 }

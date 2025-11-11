@@ -62,8 +62,9 @@ func responseJson(w http.ResponseWriter, code int, data any) {
 // ================= Admin: Clients =================
 
 type adminClientPageData struct {
-	Clients  []model.AuthClient
-	ErrorMsg string
+	Clients      []model.AuthClient
+	ErrorMsg     string
+	ShowAdminNav bool
 }
 
 func getAdminClientsHandler() http.HandlerFunc {
@@ -74,7 +75,7 @@ func getAdminClientsHandler() http.HandlerFunc {
 			_, _ = w.Write([]byte("failed to load clients"))
 			return
 		}
-		_ = renderHtml(w, "admin_clients.gohtml", http.StatusOK, adminClientPageData{Clients: clients})
+		_ = renderHtml(w, "admin_clients.gohtml", http.StatusOK, adminClientPageData{Clients: clients, ShowAdminNav: true})
 	}
 }
 

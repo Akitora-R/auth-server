@@ -51,7 +51,7 @@ func isValidNext(next string) bool {
 func handleLoginPage(c *gin.Context, s session.Store) {
 	next := c.Query("next")
 	if !isValidNext(next) {
-		c.String(http.StatusBadRequest, "invalid_next_url")
+		c.String(http.StatusBadRequest, "invalid_param")
 		return
 	}
 	s.Set(internal.SessionKeyNext, next)
@@ -59,6 +59,14 @@ func handleLoginPage(c *gin.Context, s session.Store) {
 		c.String(http.StatusInternalServerError, fmt.Sprintf("failed to save session: %v", err))
 		return
 	}
+	if next == internal.NextAdmin {
+		handleAdminLoginPage(c, s)
+	} else {
+		handleAuthLoginPage(c, s)
+	}
+}
+
+func handleAuthLoginPage(c *gin.Context, s session.Store) {
 	if _, ok := s.Get(internal.SessionKeyUserID); ok {
 		c.Redirect(http.StatusFound, internal.PathAuth)
 		return
@@ -68,8 +76,26 @@ func handleLoginPage(c *gin.Context, s session.Store) {
 		c.String(http.StatusBadRequest, "invalid_request")
 		return
 	}
-	if err := renderLoginPage(c.Writer, cid.(string), http.StatusUnauthorized, nil); err != nil {
+	if err := renderLoginPage(c.Writer, cid.(string), http.StatusUnauthorized, nil, false); err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
+	}
+}
+
+func handleAdminLoginPage(c *gin.Context, s session.Store) {
+	// If already logged in and has admin role, go straight to admin clients page
+	if v, ok := s.Get(internal.SessionKeyUserID); ok {
+		if su, ok := v.(*model.SessionUserInfo); ok && su.User != nil && su.User.HasRole("admin") {
+			c.Redirect(http.StatusFound, internal.PathAdminClients)
+			return
+		}
+		// those without admin role will still see the login page and clean up session below
+		_ = s.Flush()
+		_ = s.Save()
+	}
+	// Render the same login page but without requiring clientId, and with admin-specific title
+	if err := renderLoginPage(c.Writer, "Admin Panel", http.StatusUnauthorized, nil, true); err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 }
 
@@ -91,7 +117,7 @@ func handleJsonLogin(c *gin.Context, s session.Store) {
 	}
 	userInfo, err := storeImpl.UserRepo.GetUserByCredentials(req.LoginKey, req.ProviderType, req.Data, s)
 	if err != nil {
-		slog.Warn("failed to verify credentials", "loginKey", req.LoginKey, "provider", req.ProviderType)
+		slog.Warn("failed to verify credentials", "loginKey", req.LoginKey, "provider", req.ProviderType, "err", err)
 		responseJson(c.Writer, 1, "invalid_credentials")
 		return
 	}
@@ -106,14 +132,13 @@ func handleJsonLogin(c *gin.Context, s session.Store) {
 		responseJson(c.Writer, 0, map[string]any{"user": nil})
 		return
 	}
-	user := model.NewUserFromAuth(userInfo, nil, nil)
 	var clientID string
 	if cid, ok := s.Get(internal.SessionKeyClientID); ok {
 		if v, ok := cid.(string); ok {
 			clientID = v
 		}
 	}
-	sessionUser := model.NewSessionUserInfo(user, req.ProviderType, remoteIp, clientID, time.Now(), map[string]any{
+	sessionUser := model.NewSessionUserInfo(userInfo, req.ProviderType, remoteIp, clientID, time.Now(), map[string]any{
 		"login_key": req.LoginKey,
 	})
 	s.Set(internal.SessionKeyUserID, sessionUser)
@@ -133,11 +158,12 @@ func getIp(r *http.Request) string {
 	return remoteIp
 }
 
-func renderLoginPage(w http.ResponseWriter, clientName string, code int, err error) error {
+func renderLoginPage(w http.ResponseWriter, clientName string, code int, err error, showAdminNav bool) error {
 	data := map[string]any{
-		"client_name": clientName,
-		"site_key":    internal.AuthServerConfig.Cloudflare.Turnstile.Key,
-		"bot_name":    internal.AuthServerConfig.Telegram.BotName,
+		"client_name":  clientName,
+		"site_key":     internal.AuthServerConfig.Cloudflare.Turnstile.Key,
+		"bot_name":     internal.AuthServerConfig.Telegram.BotName,
+		"ShowAdminNav": showAdminNav,
 	}
 	if err != nil {
 		data["err"] = err

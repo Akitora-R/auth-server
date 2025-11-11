@@ -22,11 +22,11 @@ const (
 	PathRegistration = "/registration"
 	PathJwkSet       = "/.well-known/jwks.json"
 
-	// Admin paths
-	PathAdminClients    = "/admin/clients"
-	PathAdminClientNew  = "/admin/clients/new"
-	PathAdminClientEdit = "/admin/clients/edit"   // query param id
-	PathAdminClientDel  = "/admin/clients/delete" // query param id
+	// Admin paths (singular 'client' to match router)
+	PathAdminClients    = "/admin/client"
+	PathAdminClientNew  = "/admin/client/new"
+	PathAdminClientEdit = "/admin/client/edit"   // query param id
+	PathAdminClientDel  = "/admin/client/delete" // query param id
 )
 
 // 登录页 next 参数

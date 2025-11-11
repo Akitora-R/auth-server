@@ -82,10 +82,9 @@ func handleJsonReg(w http.ResponseWriter, r *http.Request, s session.Store) {
 		BaseModel:    baseModel,
 	}
 
-	user := model.AuthUser{
+	user := model.User{
 		Email:       erd.Email,
-		DisplayName: tgUser.Username,
-		BaseModel:   baseModel,
+		DisplayName: tgUser.FirstName + " " + tgUser.Username,
 	}
 
 	err = store.UserRepo.AddUser(&user, userProvider)

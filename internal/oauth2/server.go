@@ -72,7 +72,7 @@ func userAuthorizeHandler(w http.ResponseWriter, r *http.Request) (userID string
 		return
 	}
 	sessionUser := uid.(*model.SessionUserInfo)
-	userID = strconv.FormatInt(sessionUser.User.ID, 10)
+	userID = strconv.FormatInt(sessionUser.User.GetID(), 10)
 	return
 }
 

@@ -25,10 +25,33 @@ type DbUserStore struct {
 }
 
 func (m *DbUserStore) GetUserByID(id int64) (model.UserInfo, error) {
-	user := model.AuthUser{}
-	if err := internal.DB.Get(&user, "select * from auth_user where id = $1", id); err != nil {
+	authUser := model.AuthUser{}
+	if err := internal.DB.Get(&authUser, "select * from auth_user where id = $1", id); err != nil {
 		return nil, err
 	}
+	var roles []model.AuthRole
+	query := `SELECT r.id, r.name, r.description
+			  FROM auth_role r
+			  JOIN auth_user_role ur ON r.id = ur.role_id
+			  WHERE ur.user_id = $1`
+	if err := internal.DB.Select(&roles, query, authUser.ID); err != nil {
+		return nil, err
+	}
+	roleInfos := make([]model.RoleInfo, 0, len(roles))
+	for _, r := range roles {
+		var des string
+		if r.Description != nil {
+			des = *r.Description
+		} else {
+			des = ""
+		}
+		roleInfos = append(roleInfos, &model.Role{
+			ID:          r.ID,
+			Name:        r.Name,
+			Description: des,
+		})
+	}
+	user := model.NewUserFromAuth(authUser, roleInfos, nil)
 	return &user, nil
 }
 

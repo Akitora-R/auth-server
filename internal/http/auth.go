@@ -6,6 +6,7 @@ import (
 	storeImpl "auth-server/internal/store"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-session/session/v3"
 )
 
@@ -62,5 +63,36 @@ func getAuthHandler() http.HandlerFunc {
 		data["sessionUser"] = sessionUser
 
 		_ = renderHtml(w, "auth.gohtml", 200, data)
+	}
+}
+
+func adminAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		store, err := session.Start(c.Request.Context(), c.Writer, c.Request)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to start session"})
+			return
+		}
+
+		uVal, ok := store.Get(internal.SessionKeyUserID)
+		if !ok {
+			c.Redirect(http.StatusFound, internal.PathLogin+"?next="+internal.NextAdmin)
+			c.Abort()
+			return
+		}
+
+		sessionUser, ok := uVal.(*model.SessionUserInfo)
+		if !ok || sessionUser.User == nil {
+			c.Redirect(http.StatusFound, internal.PathLogin+"?next="+internal.NextAdmin)
+			c.Abort()
+			return
+		}
+
+		if !sessionUser.User.HasRole("admin") {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "you don't have permission to access this page"})
+			return
+		}
+
+		c.Next()
 	}
 }
