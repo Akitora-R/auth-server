@@ -14,6 +14,7 @@ import (
 	"github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/go-oauth2/oauth2/v4/manage"
 	"github.com/go-oauth2/oauth2/v4/server"
+	"github.com/go-session/redis/v3"
 	"github.com/go-session/session/v3"
 )
 
@@ -28,6 +29,12 @@ func InitServer() *server.Server {
 	})
 
 	manager.MustTokenStorage(storeImpl.NewRedisStoreWithCli(internal.Rdb), nil)
+	session.InitManager(
+		session.SetStore(redis.NewRedisStore(&redis.Options{
+			Addr: internal.AuthServerConfig.Redis.Host + ":" + internal.AuthServerConfig.Redis.Port,
+			DB:   0,
+		})),
+	)
 	manager.MapAccessGenerate(&ClientConfigTokenGenerate{})
 	manager.MapClientStorage(storeImpl.ClientRepo)
 
@@ -72,7 +79,7 @@ func userAuthorizeHandler(w http.ResponseWriter, r *http.Request) (userID string
 		return
 	}
 	sessionUser := uid.(*model.SessionUserInfo)
-	userID = strconv.FormatInt(sessionUser.User.GetID(), 10)
+	userID = strconv.FormatInt(sessionUser.User.ID, 10)
 	return
 }
 

@@ -49,7 +49,7 @@ func getAuthorizeHandler(srv *server.Server) http.HandlerFunc {
 			return
 		}
 		sessionUser := uid.(*model.SessionUserInfo)
-		slog.Info("logging for logged user", "user_id", sessionUser.User.GetID())
+		slog.Info("logging for logged user", "user_id", sessionUser.User.ID)
 
 		if consented := r.Form["consented"]; len(consented) > 0 {
 			var consents []model.ScopeInfo
@@ -67,7 +67,7 @@ func getAuthorizeHandler(srv *server.Server) http.HandlerFunc {
 				return
 			}
 		} else if _, ok = s.Get(internal.SessionKeyScopeConsented); !ok {
-			slog.Debug("logged but not consented", "user_id", sessionUser.User.GetID(), "redirect", internal.PathAuth)
+			slog.Debug("logged but not consented", "user_id", sessionUser.User.ID, "redirect", internal.PathAuth)
 			w.Header().Set("Location", internal.PathAuth)
 			w.WriteHeader(http.StatusFound)
 			return

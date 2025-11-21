@@ -16,15 +16,15 @@ import (
 var UserRepo UserStore = &DbUserStore{}
 
 type UserStore interface {
-	GetUserByID(id int64) (model.UserInfo, error)
-	GetUserByCredentials(providerID string, providerType *model.ProviderType, data json.RawMessage, sessionStore session.Store) (user model.UserInfo, err error)
-	AddUser(user model.UserInfo, provider model.AuthUserProvider) error
+	GetUserByID(id int64) (*model.User, error)
+	GetUserByCredentials(providerID string, providerType *model.ProviderType, data json.RawMessage, sessionStore session.Store) (user *model.User, err error)
+	AddUser(user *model.User, provider model.AuthUserProvider) error
 }
 
 type DbUserStore struct {
 }
 
-func (m *DbUserStore) GetUserByID(id int64) (model.UserInfo, error) {
+func (m *DbUserStore) GetUserByID(id int64) (*model.User, error) {
 	authUser := model.AuthUser{}
 	if err := internal.DB.Get(&authUser, "select * from auth_user where id = $1", id); err != nil {
 		return nil, err
@@ -37,21 +37,11 @@ func (m *DbUserStore) GetUserByID(id int64) (model.UserInfo, error) {
 	if err := internal.DB.Select(&roles, query, authUser.ID); err != nil {
 		return nil, err
 	}
-	roleInfos := make([]model.RoleInfo, 0, len(roles))
+	roleList := make([]*model.Role, 0, len(roles))
 	for _, r := range roles {
-		var des string
-		if r.Description != nil {
-			des = *r.Description
-		} else {
-			des = ""
-		}
-		roleInfos = append(roleInfos, &model.Role{
-			ID:          r.ID,
-			Name:        r.Name,
-			Description: des,
-		})
+		roleList = append(roleList, model.NewRoleFromAuth(r))
 	}
-	user := model.NewUserFromAuth(authUser, roleInfos, nil)
+	user := model.NewUserFromAuth(authUser, roleList, nil)
 	return &user, nil
 }
 
@@ -60,7 +50,7 @@ func (m *DbUserStore) GetUserByCredentials(
 	providerType *model.ProviderType,
 	data json.RawMessage,
 	sessionStore session.Store,
-) (model.UserInfo, error) {
+) (*model.User, error) {
 	var providers []model.AuthUserProvider
 	if err := internal.DB.Select(&providers, `select * from auth_user_provider where login_key = $1 and provider_type = $2`, loginKey, providerType); err != nil {
 		return nil, err
@@ -103,11 +93,11 @@ func (m *DbUserStore) GetUserByCredentials(
 	}
 }
 
-func (m *DbUserStore) AddUser(user model.UserInfo, provider model.AuthUserProvider) error {
+func (m *DbUserStore) AddUser(user *model.User, provider model.AuthUserProvider) error {
 	now := time.Now()
 	e := model.AuthUser{
-		Email:       user.GetEmail(),
-		DisplayName: user.GetDisplayName(),
+		Email:       user.Email,
+		DisplayName: user.DisplayName,
 		BaseModel: model.BaseModel{
 			CreatedAt: &now,
 			UpdatedAt: &now,
@@ -133,7 +123,7 @@ func (m *DbUserStore) AddUser(user model.UserInfo, provider model.AuthUserProvid
 	}()
 
 	var uCount = 0
-	if err = tx.Get(&uCount, "SELECT COUNT(*) FROM auth_user WHERE email = $1", user.GetEmail()); err != nil {
+	if err = tx.Get(&uCount, "SELECT COUNT(*) FROM auth_user WHERE email = $1", user.Email); err != nil {
 		return err
 	}
 
@@ -170,5 +160,54 @@ func (m *DbUserStore) AddUser(user model.UserInfo, provider model.AuthUserProvid
 		return err
 	}
 
+	return nil
+}
+
+func (m *DbUserStore) List() ([]model.User, error) {
+	var authUsers []model.AuthUser
+	if err := internal.DB.Select(&authUsers, "select * from auth_user order by id desc"); err != nil {
+		return nil, err
+	}
+	users := make([]model.User, 0, len(authUsers))
+	for _, au := range authUsers {
+		var roles []model.AuthRole
+		query := `SELECT r.id, r.name, r.description
+			  FROM auth_role r
+			  JOIN auth_user_role ur ON r.id = ur.role_id
+			  WHERE ur.user_id = $1`
+		_ = internal.DB.Select(&roles, query, au.ID)
+
+		roleList := make([]*model.Role, 0, len(roles))
+		for _, r := range roles {
+			roleList = append(roleList, model.NewRoleFromAuth(r))
+		}
+
+		users = append(users, model.NewUserFromAuth(au, roleList, nil))
+	}
+	return users, nil
+}
+
+func (m *DbUserStore) Delete(id int64) error {
+	tx, err := internal.DB.Beginx()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		} else {
+			_ = tx.Commit()
+		}
+	}()
+
+	if _, err = tx.Exec("DELETE FROM auth_user_provider WHERE user_id = $1", id); err != nil {
+		return err
+	}
+	if _, err = tx.Exec("DELETE FROM auth_user_role WHERE user_id = $1", id); err != nil {
+		return err
+	}
+	if _, err = tx.Exec("DELETE FROM auth_user WHERE id = $1", id); err != nil {
+		return err
+	}
 	return nil
 }

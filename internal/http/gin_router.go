@@ -56,6 +56,10 @@ func CreateGinEngine(srv *server.Server) *gin.Engine {
 		adminGroup.GET("/client", gin.WrapF(getAdminClientsHandler()))
 		adminGroup.POST("/client/new", gin.WrapF(postAdminClientNewHandler()))
 		adminGroup.POST("/client/del", gin.WrapF(postAdminClientDelHandler()))
+
+		adminGroup.GET("/accounts", gin.WrapF(getAdminAccountsHandler()))
+		adminGroup.POST("/accounts/new", gin.WrapF(postAdminAccountNewHandler()))
+		adminGroup.POST("/accounts/del", gin.WrapF(postAdminAccountDelHandler()))
 	}
 
 	// 404 fallback

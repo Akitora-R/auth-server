@@ -84,13 +84,19 @@ func handleAuthLoginPage(c *gin.Context, s session.Store) {
 func handleAdminLoginPage(c *gin.Context, s session.Store) {
 	// If already logged in and has admin role, go straight to admin clients page
 	if v, ok := s.Get(internal.SessionKeyUserID); ok {
-		if su, ok := v.(*model.SessionUserInfo); ok && su.User != nil && su.User.HasRole("admin") {
-			c.Redirect(http.StatusFound, internal.PathAdminClients)
-			return
+		if su, err := util.MapToStruct[*model.SessionUserInfo](v.(map[string]any)); err == nil {
+			if su.User.HasRole("admin") {
+				c.Redirect(http.StatusFound, internal.PathAdminClients)
+				return
+			} else {
+				slog.Warn("user without admin role attempted to access admin panel", "user_id", su.User.ID)
+				// those without admin role will still see the login page and clean up session below
+				_ = s.Flush()
+				_ = s.Save()
+			}
+		} else {
+			slog.Error("failed to map session user info", "err", err)
 		}
-		// those without admin role will still see the login page and clean up session below
-		_ = s.Flush()
-		_ = s.Save()
 	}
 	// Render the same login page but without requiring clientId, and with admin-specific title
 	if err := renderLoginPage(c.Writer, "Admin Panel", http.StatusUnauthorized, nil, true); err != nil {
