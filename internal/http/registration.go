@@ -3,6 +3,7 @@ package http
 import (
 	"auth-server/internal"
 	"auth-server/internal/model"
+	"auth-server/internal/render"
 	"auth-server/internal/store"
 	"encoding/json"
 	"io"
@@ -106,7 +107,7 @@ func handleRegPage(w http.ResponseWriter, s session.Store) {
 		return
 	}
 	next, _ := s.Get(internal.SessionKeyNext)
-	_ = renderHtml(w, "registration.gohtml", 200, map[string]any{
+	_ = render.Html(w, "registration.gohtml", 200, map[string]any{
 		"tgData":   tgData,
 		"site_key": internal.AuthServerConfig.Cloudflare.Turnstile.Key,
 		"next":     next,

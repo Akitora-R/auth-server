@@ -3,6 +3,7 @@ package http
 import (
 	"auth-server/internal"
 	"auth-server/internal/model"
+	"auth-server/internal/render"
 	storeImpl "auth-server/internal/store"
 	"net/http"
 
@@ -61,6 +62,6 @@ func getAuthHandler() http.HandlerFunc {
 		data["user"] = sessionUser.User
 		data["sessionUser"] = sessionUser
 
-		_ = renderHtml(w, "auth.gohtml", 200, data)
+		_ = render.Html(w, "auth.gohtml", 200, data)
 	}
 }

@@ -3,6 +3,7 @@ package http
 import (
 	"auth-server/internal"
 	"auth-server/internal/model"
+	"auth-server/internal/render"
 	storeImpl "auth-server/internal/store"
 	"auth-server/internal/util"
 	"encoding/json"
@@ -174,7 +175,7 @@ func renderLoginPage(w http.ResponseWriter, clientName string, code int, err err
 	if err != nil {
 		data["err"] = err
 	}
-	return renderHtml(w, "login.gohtml", code, data)
+	return render.Html(w, "login.gohtml", code, data)
 }
 
 // saveTelegramSessionOnUnregistered validates Telegram credential and stores it into session

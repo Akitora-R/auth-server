@@ -2,6 +2,7 @@ package http
 
 import (
 	"auth-server/internal"
+	"auth-server/internal/http/admin"
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
@@ -51,15 +52,15 @@ func CreateGinEngine(srv *server.Server) *gin.Engine {
 
 	// Admin routes
 	adminGroup := r.Group("/admin")
-	adminGroup.Use(adminAuthMiddleware())
+	adminGroup.Use(admin.AuthMiddleware())
 	{
-		adminGroup.GET("/client", gin.WrapF(getAdminClientsHandler()))
-		adminGroup.POST("/client/new", gin.WrapF(postAdminClientNewHandler()))
-		adminGroup.POST("/client/del", gin.WrapF(postAdminClientDelHandler()))
+		adminGroup.GET("/client", gin.WrapF(admin.GetClients()))
+		adminGroup.POST("/client/new", gin.WrapF(admin.PostClientNew()))
+		adminGroup.POST("/client/del", gin.WrapF(admin.PostClientDel()))
 
-		adminGroup.GET("/accounts", gin.WrapF(getAdminAccountsHandler()))
-		adminGroup.POST("/accounts/new", gin.WrapF(postAdminAccountNewHandler()))
-		adminGroup.POST("/accounts/del", gin.WrapF(postAdminAccountDelHandler()))
+		adminGroup.GET("/accounts", gin.WrapF(admin.GetAccounts()))
+		adminGroup.POST("/accounts/new", gin.WrapF(admin.PostAccountNew()))
+		adminGroup.POST("/accounts/del", gin.WrapF(admin.PostAccountDel()))
 	}
 
 	// 404 fallback

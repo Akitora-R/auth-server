@@ -4,14 +4,11 @@ import (
 	"auth-server/internal"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"net/http"
 	"time"
 
 	"github.com/go-resty/resty/v2"
 )
-
-var tpl = template.Must(template.New("").ParseGlob("template/*"))
 
 type TurnstileResp struct {
 	Success     bool      `json:"success"`
@@ -37,11 +34,6 @@ func verifyRequest(token, ip string) error {
 		return fmt.Errorf("%v", re.ErrorCodes)
 	}
 	return nil
-}
-
-func renderHtml(w http.ResponseWriter, tplName string, code int, data any) error {
-	w.WriteHeader(code)
-	return tpl.ExecuteTemplate(w, tplName, data)
 }
 
 func responseJson(w http.ResponseWriter, code int, data any) {
