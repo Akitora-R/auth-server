@@ -4,6 +4,7 @@ import (
 	"auth-server/internal"
 	"auth-server/internal/model"
 	storeImpl "auth-server/internal/store"
+	"auth-server/internal/util"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -78,7 +79,19 @@ func userAuthorizeHandler(w http.ResponseWriter, r *http.Request) (userID string
 		http.Error(w, "failed to read session data", http.StatusInternalServerError)
 		return
 	}
-	sessionUser := uid.(*model.SessionUserInfo)
+	var sessionUser *model.SessionUserInfo
+	if v, ok := uid.(map[string]any); ok {
+		var mapErr error
+		sessionUser, mapErr = util.MapToStruct[*model.SessionUserInfo](v)
+		if mapErr != nil {
+			http.Error(w, "failed to parse session user info", http.StatusInternalServerError)
+			err = mapErr
+			return
+		}
+	} else {
+		http.Error(w, "invalid session user info type", http.StatusInternalServerError)
+		return
+	}
 	userID = strconv.FormatInt(sessionUser.User.ID, 10)
 	return
 }

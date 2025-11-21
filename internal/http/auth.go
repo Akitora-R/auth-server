@@ -5,6 +5,7 @@ import (
 	"auth-server/internal/model"
 	"auth-server/internal/render"
 	storeImpl "auth-server/internal/store"
+	"auth-server/internal/util"
 	"net/http"
 
 	"github.com/go-session/session/v3"
@@ -57,8 +58,19 @@ func getAuthHandler() http.HandlerFunc {
 			return
 		}
 		data["scopeRequested"] = scopes
-		// 将用户信息注入模板，便于展示昵称/邮箱等
-		sessionUser := uVal.(*model.SessionUserInfo)
+		// inject user info into template
+		var sessionUser *model.SessionUserInfo
+		if v, ok := uVal.(map[string]any); ok {
+			var err error
+			sessionUser, err = util.MapToStruct[*model.SessionUserInfo](v)
+			if err != nil {
+				http.Error(w, "failed to parse session user info", http.StatusInternalServerError)
+				return
+			}
+		} else {
+			http.Error(w, "invalid session user info type", http.StatusInternalServerError)
+			return
+		}
 		data["user"] = sessionUser.User
 		data["sessionUser"] = sessionUser
 
