@@ -87,10 +87,10 @@ func handleAuthenticated(w http.ResponseWriter, r *http.Request, s session.Store
 	slog.Info("logging for logged user", "user_id", sessionUser.User.ID)
 
 	if consented := r.Form["consented"]; len(consented) > 0 {
-		var consents []model.ScopeInfo
+		var consents []*model.ScopeInfo
 		for _, consentStr := range consented {
 			if scope, err := model.ParseScope(consentStr); err == nil {
-				consents = append(consents, scope)
+				consents = append(consents, &scope)
 			}
 		}
 		if len(consents) > 0 {

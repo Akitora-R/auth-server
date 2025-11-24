@@ -19,6 +19,7 @@ type UserStore interface {
 	GetUserByID(id int64) (*model.User, error)
 	GetUserByCredentials(providerID string, providerType *model.ProviderType, data json.RawMessage, sessionStore session.Store) (user *model.User, err error)
 	AddUser(user *model.User, provider model.AuthUserProvider) error
+	UpdateLastLogin(userID int64) error
 }
 
 type DbUserStore struct {
@@ -41,7 +42,7 @@ func (m *DbUserStore) GetUserByID(id int64) (*model.User, error) {
 	for _, r := range roles {
 		roleList = append(roleList, model.NewRoleFromAuth(r))
 	}
-	user := model.NewUserFromAuth(authUser, roleList, nil)
+	user := model.NewUserFromAuth(authUser, roleList, authUser.LastLoginAt)
 	return &user, nil
 }
 
@@ -163,6 +164,12 @@ func (m *DbUserStore) AddUser(user *model.User, provider model.AuthUserProvider)
 	return nil
 }
 
+func (m *DbUserStore) UpdateLastLogin(userID int64) error {
+	now := time.Now()
+	_, err := internal.DB.Exec("UPDATE auth_user SET last_login_at = $1 WHERE id = $2", now, userID)
+	return err
+}
+
 func (m *DbUserStore) List() ([]model.User, error) {
 	var authUsers []model.AuthUser
 	if err := internal.DB.Select(&authUsers, "select * from auth_user order by id desc"); err != nil {
@@ -182,7 +189,7 @@ func (m *DbUserStore) List() ([]model.User, error) {
 			roleList = append(roleList, model.NewRoleFromAuth(r))
 		}
 
-		users = append(users, model.NewUserFromAuth(au, roleList, nil))
+		users = append(users, model.NewUserFromAuth(au, roleList, au.LastLoginAt))
 	}
 	return users, nil
 }

@@ -57,7 +57,16 @@ func getAuthHandler() http.HandlerFunc {
 			http.Error(w, "failed to get requested scope", http.StatusInternalServerError)
 			return
 		}
-		data["scopeRequested"] = scopes
+		scopeList, err := util.Decode[[]*model.Scope](scopes)
+		if err != nil {
+			http.Error(w, "failed to parse scopes", http.StatusInternalServerError)
+			return
+		}
+		var scopeInfos []model.ScopeInfo
+		for _, s := range scopeList {
+			scopeInfos = append(scopeInfos, s)
+		}
+		data["scopeRequested"] = scopeInfos
 		// inject user info into template
 		var sessionUser *model.SessionUserInfo
 		if v, ok := uVal.(map[string]any); ok {

@@ -3,9 +3,10 @@ package model
 import "time"
 
 type AuthUser struct {
-	ID          int64  `db:"id"`
-	Email       string `db:"email"`
-	DisplayName string `db:"display_name"`
+	ID          int64      `db:"id"`
+	Email       string     `db:"email"`
+	DisplayName string     `db:"display_name"`
+	LastLoginAt *time.Time `db:"last_login_at"`
 	BaseModel
 }
 

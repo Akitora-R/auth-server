@@ -12,7 +12,8 @@ CREATE TABLE auth.auth_user (
     email TEXT,
     display_name TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ
+    updated_at TIMESTAMPTZ,
+    last_login_at TIMESTAMPTZ
 );
 
 CREATE TABLE auth.auth_user_provider (

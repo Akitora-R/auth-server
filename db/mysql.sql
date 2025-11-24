@@ -6,6 +6,7 @@ CREATE TABLE auth_user
     display_name VARCHAR(255),
     created_at   DATETIME,
     updated_at   DATETIME,
+    last_login_at DATETIME,
     PRIMARY KEY (id)
 );
 

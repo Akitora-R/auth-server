@@ -5,6 +5,8 @@ import (
 	"auth-server/internal/model"
 	storeImpl "auth-server/internal/store"
 	"auth-server/internal/util"
+	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -58,6 +60,7 @@ func InitServer() *server.Server {
 	srv := server.NewServer(&oauth2ServerConfig, manager)
 	srv.SetUserAuthorizationHandler(userAuthorizeHandler)
 	srv.SetAuthorizeScopeHandler(scopeHandler)
+	srv.SetResponseTokenHandler(getResponseTokenHandler(manager))
 	srv.SetInternalErrorHandler(func(err error) (re *errors.Response) {
 		slog.Error("Internal Error", "err", err)
 		return
@@ -106,8 +109,56 @@ func scopeHandler(w http.ResponseWriter, r *http.Request) (string, error) {
 		return "", errors.New("failed to get scope")
 	}
 	var scopeName []string
-	for _, scopeInfo := range consented.([]model.ScopeInfo) {
-		scopeName = append(scopeName, scopeInfo.GetName())
+	consentedScopes, err := util.Decode[[]*model.Scope](consented)
+	if err != nil {
+		return "", err
+	}
+	for _, scopeInfo := range consentedScopes {
+		scopeName = append(scopeName, scopeInfo.Name)
 	}
 	return strings.Join(scopeName, " "), nil
+}
+
+func getResponseTokenHandler(manager oauth2.Manager) server.ResponseTokenHandler {
+	return func(w http.ResponseWriter, data map[string]interface{}, header http.Header, statusCode ...int) error {
+		t := data["access_token"]
+		if ts, ok := t.(string); ok {
+			ti, err := manager.LoadAccessToken(context.Background(), ts)
+			if err == nil {
+				userId := ti.GetUserID()
+				slog.Info("access token generated", "user_id", userId)
+				// update user last login time
+				updateUserLastLogin(userId)
+			} else {
+				slog.Warn("failed to load access token after gen token", "err", err)
+			}
+		}
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Pragma", "no-cache")
+
+		for key := range header {
+			w.Header().Set(key, header.Get(key))
+		}
+
+		status := http.StatusOK
+		if len(statusCode) > 0 && statusCode[0] > 0 {
+			status = statusCode[0]
+		}
+
+		w.WriteHeader(status)
+		return json.NewEncoder(w).Encode(data)
+	}
+}
+
+func updateUserLastLogin(userId string) {
+	if uid, err := strconv.ParseInt(userId, 10, 64); err == nil {
+		if err := storeImpl.UserRepo.UpdateLastLogin(uid); err != nil {
+			slog.Error("failed to update user last login time", "err", err)
+		} else {
+			slog.Info("updated user last login time", "user_id", uid)
+		}
+	} else {
+		slog.Error("failed to parse user id", "user_id", userId, "err", err)
+	}
 }
