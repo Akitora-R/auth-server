@@ -5,11 +5,11 @@ import (
 	"auth-server/internal/model"
 	"auth-server/internal/render"
 	"auth-server/internal/store"
-	"math/rand"
+	"crypto/rand"
+	"encoding/base64"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type adminClientPageData struct {
@@ -86,13 +86,12 @@ func PostClientDel() http.HandlerFunc {
 	}
 }
 
-// simple random secret generator (non-crypto for admin convenience)
+// secure random secret generator using base64
 func generateRandomSecret(n int) string {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, n)
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for i := range b {
-		b[i] = letters[r.Intn(len(letters))]
+	if _, err := rand.Read(b); err != nil {
+		return ""
 	}
-	return string(b)
+	// RawURLEncoding avoids + and / characters and padding = which are friendlier for URLs and configs
+	return base64.RawURLEncoding.EncodeToString(b)
 }
