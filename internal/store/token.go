@@ -9,8 +9,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/redis/go-redis/v9"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/go-oauth2/oauth2/v4/models"
@@ -97,6 +98,19 @@ func (s *TokenStore) remove(ctx context.Context, key string) error {
 	result := s.cli.Del(ctx, s.wrapperKey(key))
 	_, err := s.checkError(result)
 	return err
+}
+
+// remove must exists
+func (s *TokenStore) removeMustExists(ctx context.Context, key string) error {
+	result := s.cli.Del(ctx, s.wrapperKey(key))
+	_, err := s.checkError(result)
+	if err != nil {
+		return err
+	}
+	if result.Val() == 0 {
+		return errors.New("the token to be deleted does not exist")
+	}
+	return nil
 }
 
 func (s *TokenStore) removeToken(ctx context.Context, tokenString string, isRefresh bool) error {
@@ -210,7 +224,7 @@ func (s *TokenStore) Create(ctx context.Context, info oauth2.TokenInfo) error {
 
 // RemoveByCode Use the authorization code to delete the token information
 func (s *TokenStore) RemoveByCode(ctx context.Context, code string) error {
-	return s.remove(ctx, code)
+	return s.removeMustExists(ctx, code)
 }
 
 // RemoveByAccess Use the access token to delete the token information

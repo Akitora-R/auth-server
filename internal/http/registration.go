@@ -3,6 +3,7 @@ package http
 import (
 	"auth-server/internal"
 	"auth-server/internal/model"
+	"auth-server/internal/render"
 	"auth-server/internal/store"
 	"encoding/json"
 	"io"
@@ -12,7 +13,7 @@ import (
 	"time"
 
 	"github.com/go-oauth2/oauth2/v4/server"
-	"github.com/go-session/session"
+	"github.com/go-session/session/v3"
 )
 
 type regReq struct {
@@ -82,10 +83,9 @@ func handleJsonReg(w http.ResponseWriter, r *http.Request, s session.Store) {
 		BaseModel:    baseModel,
 	}
 
-	user := model.AuthUser{
+	user := model.User{
 		Email:       erd.Email,
-		DisplayName: tgUser.Username,
-		BaseModel:   baseModel,
+		DisplayName: tgUser.FirstName + " " + tgUser.Username,
 	}
 
 	err = store.UserRepo.AddUser(&user, userProvider)
@@ -106,8 +106,10 @@ func handleRegPage(w http.ResponseWriter, s session.Store) {
 		http.Error(w, "failed to read user data", http.StatusInternalServerError)
 		return
 	}
-	_ = renderHtml(w, "registration.gohtml", 200, map[string]any{
+	next, _ := s.Get(internal.SessionKeyNext)
+	_ = render.Html(w, "registration.gohtml", 200, map[string]any{
 		"tgData":   tgData,
 		"site_key": internal.AuthServerConfig.Cloudflare.Turnstile.Key,
+		"next":     next,
 	})
 }

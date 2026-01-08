@@ -7,38 +7,53 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-session/session"
 	"log/slog"
 	"time"
+
+	"github.com/go-session/session/v3"
 )
 
-var UserRepo UserStore = &MySQLUserStore{}
+var UserRepo UserStore = &DbUserStore{}
 
 type UserStore interface {
-	GetUserByID(id int64) (model.UserInfo, error)
-	GetUserByCredentials(providerID string, providerType *model.ProviderType, data json.RawMessage, sessionStore session.Store) (user model.UserInfo, err error)
-	AddUser(user model.UserInfo, provider model.AuthUserProvider) error
+	GetUserByID(id int64) (*model.User, error)
+	GetUserByCredentials(providerID string, providerType *model.ProviderType, data json.RawMessage, sessionStore session.Store) (user *model.User, err error)
+	AddUser(user *model.User, provider model.AuthUserProvider) error
+	UpdateLastLogin(userID int64) error
 }
 
-type MySQLUserStore struct {
+type DbUserStore struct {
 }
 
-func (m *MySQLUserStore) GetUserByID(id int64) (model.UserInfo, error) {
-	user := model.AuthUser{}
-	if err := internal.DB.Get(&user, "select * from auth_user where id = ?", id); err != nil {
+func (m *DbUserStore) GetUserByID(id int64) (*model.User, error) {
+	authUser := model.AuthUser{}
+	if err := internal.DB.Get(&authUser, "select * from auth_user where id = $1", id); err != nil {
 		return nil, err
 	}
+	var roles []model.AuthRole
+	query := `SELECT r.id, r.name, r.description
+			  FROM auth_role r
+			  JOIN auth_user_role ur ON r.id = ur.role_id
+			  WHERE ur.user_id = $1`
+	if err := internal.DB.Select(&roles, query, authUser.ID); err != nil {
+		return nil, err
+	}
+	roleList := make([]*model.Role, 0, len(roles))
+	for _, r := range roles {
+		roleList = append(roleList, model.NewRoleFromAuth(r))
+	}
+	user := model.NewUserFromAuth(authUser, roleList, authUser.LastLoginAt)
 	return &user, nil
 }
 
-func (m *MySQLUserStore) GetUserByCredentials(
+func (m *DbUserStore) GetUserByCredentials(
 	loginKey string,
 	providerType *model.ProviderType,
 	data json.RawMessage,
 	sessionStore session.Store,
-) (model.UserInfo, error) {
+) (*model.User, error) {
 	var providers []model.AuthUserProvider
-	if err := internal.DB.Select(&providers, `select * from auth_user_provider where login_key = ? and provider_type = ?`, loginKey, providerType); err != nil {
+	if err := internal.DB.Select(&providers, `select * from auth_user_provider where login_key = $1 and provider_type = $2`, loginKey, providerType); err != nil {
 		return nil, err
 	}
 	if len(providers) <= 0 {
@@ -79,11 +94,11 @@ func (m *MySQLUserStore) GetUserByCredentials(
 	}
 }
 
-func (m *MySQLUserStore) AddUser(user model.UserInfo, provider model.AuthUserProvider) error {
+func (m *DbUserStore) AddUser(user *model.User, provider model.AuthUserProvider) error {
 	now := time.Now()
 	e := model.AuthUser{
-		Email:       user.GetEmail(),
-		DisplayName: user.GetDisplayName(),
+		Email:       user.Email,
+		DisplayName: user.DisplayName,
 		BaseModel: model.BaseModel{
 			CreatedAt: &now,
 			UpdatedAt: &now,
@@ -109,7 +124,7 @@ func (m *MySQLUserStore) AddUser(user model.UserInfo, provider model.AuthUserPro
 	}()
 
 	var uCount = 0
-	if err = tx.Get(&uCount, "SELECT COUNT(*) FROM auth_user WHERE email = ?", user.GetEmail()); err != nil {
+	if err = tx.Get(&uCount, "SELECT COUNT(*) FROM auth_user WHERE email = $1", user.Email); err != nil {
 		return err
 	}
 
@@ -117,18 +132,19 @@ func (m *MySQLUserStore) AddUser(user model.UserInfo, provider model.AuthUserPro
 		return errors.New("user_exists")
 	}
 
-	insertUserSql := `INSERT INTO auth.auth_user (email, display_name, created_at, updated_at) 
-              VALUES (:email, :display_name, :created_at, :updated_at)`
-
-	result, err := tx.NamedExec(insertUserSql, e)
+	insertUserSql := `INSERT INTO auth_user (email, display_name, created_at, updated_at) 
+	              VALUES (:email, :display_name, :created_at, :updated_at) RETURNING id`
+	rows, err := tx.NamedQuery(insertUserSql, e)
 	if err != nil {
 		return err
 	}
-
-	userID, err := result.LastInsertId()
-	if err != nil {
-		return err
+	var userID int64
+	if rows.Next() {
+		if err = rows.Scan(&userID); err != nil {
+			return err
+		}
 	}
+	_ = rows.Close()
 
 	// Insert provider data
 	provider.UserID = userID
@@ -137,13 +153,68 @@ func (m *MySQLUserStore) AddUser(user model.UserInfo, provider model.AuthUserPro
 		UpdatedAt: &now,
 	}
 
-	insertProviderSql := `INSERT INTO auth.auth_user_provider (user_id, login_key, provider_type, provider_data, created_at, updated_at)
-              VALUES (:user_id, :login_key, :provider_type, :provider_data, :created_at, :updated_at)`
+	insertProviderSql := `INSERT INTO auth_user_provider (user_id, login_key, provider_type, provider_data, created_at, updated_at)
+	              VALUES (:user_id, :login_key, :provider_type, :provider_data, :created_at, :updated_at)`
 
 	_, err = tx.NamedExec(insertProviderSql, provider)
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (m *DbUserStore) UpdateLastLogin(userID int64) error {
+	now := time.Now()
+	_, err := internal.DB.Exec("UPDATE auth_user SET last_login_at = $1 WHERE id = $2", now, userID)
+	return err
+}
+
+func (m *DbUserStore) List() ([]model.User, error) {
+	var authUsers []model.AuthUser
+	if err := internal.DB.Select(&authUsers, "select * from auth_user order by id desc"); err != nil {
+		return nil, err
+	}
+	users := make([]model.User, 0, len(authUsers))
+	for _, au := range authUsers {
+		var roles []model.AuthRole
+		query := `SELECT r.id, r.name, r.description
+			  FROM auth_role r
+			  JOIN auth_user_role ur ON r.id = ur.role_id
+			  WHERE ur.user_id = $1`
+		_ = internal.DB.Select(&roles, query, au.ID)
+
+		roleList := make([]*model.Role, 0, len(roles))
+		for _, r := range roles {
+			roleList = append(roleList, model.NewRoleFromAuth(r))
+		}
+
+		users = append(users, model.NewUserFromAuth(au, roleList, au.LastLoginAt))
+	}
+	return users, nil
+}
+
+func (m *DbUserStore) Delete(id int64) error {
+	tx, err := internal.DB.Beginx()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		} else {
+			_ = tx.Commit()
+		}
+	}()
+
+	if _, err = tx.Exec("DELETE FROM auth_user_provider WHERE user_id = $1", id); err != nil {
+		return err
+	}
+	if _, err = tx.Exec("DELETE FROM auth_user_role WHERE user_id = $1", id); err != nil {
+		return err
+	}
+	if _, err = tx.Exec("DELETE FROM auth_user WHERE id = $1", id); err != nil {
+		return err
+	}
 	return nil
 }

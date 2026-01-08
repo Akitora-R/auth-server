@@ -42,13 +42,13 @@ func (t *TokenType) Value() (driver.Value, error) {
 	}
 }
 
-func (t *TokenType) Scan(value interface{}) error {
+func (t *TokenType) Scan(value any) error {
 	var strVal string
-	switch value.(type) {
+	switch v := value.(type) {
 	case []uint8:
-		strVal = string(value.([]uint8))
+		strVal = string(v)
 	case string:
-		strVal = value.(string)
+		strVal = v
 	default:
 		return fmt.Errorf("TokenType must be a string, got %T", value)
 	}
@@ -63,4 +63,16 @@ func (t *TokenType) Scan(value interface{}) error {
 	}
 
 	return nil
+}
+
+// String returns the textual name of the token type
+func (t TokenType) String() string {
+	switch t {
+	case OpaqueToken:
+		return "OpaqueToken"
+	case JWT:
+		return "JWT"
+	default:
+		return fmt.Sprintf("Unknown(%d)", int(t))
+	}
 }

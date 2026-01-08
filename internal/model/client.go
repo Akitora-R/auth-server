@@ -1,6 +1,12 @@
 package model
 
-import "github.com/go-oauth2/oauth2/v4"
+import (
+	"slices"
+
+	"fmt"
+
+	"github.com/go-oauth2/oauth2/v4"
+)
 
 type ScopedClientInfo interface {
 	oauth2.ClientInfo
@@ -10,7 +16,7 @@ type ScopedClientInfo interface {
 }
 
 type AuthClient struct {
-	ID          string     `db:"id"`
+	ID          int64      `db:"id"`
 	Secret      string     `db:"secret"`
 	Domain      string     `db:"domain"`
 	DisplayName string     `db:"display_name"`
@@ -20,7 +26,7 @@ type AuthClient struct {
 }
 
 func (c *AuthClient) GetID() string {
-	return c.ID
+	return fmt.Sprint(c.ID)
 }
 
 func (c *AuthClient) GetSecret() string {
@@ -48,12 +54,7 @@ func (c *AuthClient) GetScopes() []string {
 }
 
 func (c *AuthClient) HasScope(scope string) bool {
-	for _, s := range c.Scopes {
-		if s == scope {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.Scopes, scope)
 }
 
 func (c *AuthClient) GetTokenType() TokenType {

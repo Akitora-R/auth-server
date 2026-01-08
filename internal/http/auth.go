@@ -3,10 +3,12 @@ package http
 import (
 	"auth-server/internal"
 	"auth-server/internal/model"
+	"auth-server/internal/render"
 	storeImpl "auth-server/internal/store"
+	"auth-server/internal/util"
 	"net/http"
 
-	"github.com/go-session/session"
+	"github.com/go-session/session/v3"
 )
 
 func getAuthHandler() http.HandlerFunc {
@@ -16,7 +18,8 @@ func getAuthHandler() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if _, ok := s.Get(internal.SessionKeyUserID); !ok {
+		uVal, ok := s.Get(internal.SessionKeyUserID)
+		if !ok {
 			w.Header().Set("Location", internal.PathLogin)
 			w.WriteHeader(http.StatusFound)
 			return
@@ -54,8 +57,32 @@ func getAuthHandler() http.HandlerFunc {
 			http.Error(w, "failed to get requested scope", http.StatusInternalServerError)
 			return
 		}
-		data["scopeRequested"] = scopes
+		scopeList, err := util.Decode[[]*model.Scope](scopes)
+		if err != nil {
+			http.Error(w, "failed to parse scopes", http.StatusInternalServerError)
+			return
+		}
+		var scopeInfos []model.ScopeInfo
+		for _, s := range scopeList {
+			scopeInfos = append(scopeInfos, s)
+		}
+		data["scopeRequested"] = scopeInfos
+		// inject user info into template
+		var sessionUser *model.SessionUserInfo
+		if v, ok := uVal.(map[string]any); ok {
+			var err error
+			sessionUser, err = util.MapToStruct[*model.SessionUserInfo](v)
+			if err != nil {
+				http.Error(w, "failed to parse session user info", http.StatusInternalServerError)
+				return
+			}
+		} else {
+			http.Error(w, "invalid session user info type", http.StatusInternalServerError)
+			return
+		}
+		data["user"] = sessionUser.User
+		data["sessionUser"] = sessionUser
 
-		_ = renderHtml(w, "auth.gohtml", 200, data)
+		_ = render.Html(w, "auth.gohtml", 200, data)
 	}
 }

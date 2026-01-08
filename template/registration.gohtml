@@ -2,15 +2,15 @@
 <html lang="zh">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Registration</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    {{template "head_common" .}}
     <link href="https://cdn.bootcss.com/font-awesome/5.13.0/css/all.css" rel="stylesheet">
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 
 <body>
+{{template "navbar" .}}
+<main class="layout-main">
 <section class="section">
     <div class="container">
         <div class="columns is-centered">
@@ -37,7 +37,9 @@
             </div>
         </div>
     </div>
-</section>
+    </section>
+</main>
+{{template "footer" .}}
 <script>
     /**
      * @type {string}
@@ -83,7 +85,7 @@
             showErrorMessage("Network Error");
         }).then(r => r.json()).then(j => {
             if (j.code === 0) {
-                window.location.replace("/login");
+                window.location.replace("/login?next=" + encodeURIComponent("{{.next}}"));
             } else {
                 console.error(j);
                 showErrorMessage(JSON.stringify(j));

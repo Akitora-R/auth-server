@@ -4,9 +4,10 @@ import (
 	"auth-server/internal"
 	"auth-server/internal/model"
 	"context"
+
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/go-oauth2/oauth2/v4/generates"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var tokenGenerator = map[model.TokenType]oauth2.AccessGenerate{

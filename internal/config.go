@@ -30,9 +30,10 @@ type Config struct {
 		Host string `yaml:"host"`
 		Port string `yaml:"port"`
 	} `yaml:"redis"`
-	DB         string      `yaml:"db"`
-	JWT        []JWTConfig `yaml:"jwt"`
-	Cloudflare struct {
+	DB           string      `yaml:"db"`
+	DBSearchPath string      `yaml:"db-search-path"`
+	JWT          []JWTConfig `yaml:"jwt"`
+	Cloudflare   struct {
 		Turnstile struct {
 			Key    string `yaml:"key"`
 			Secret string `yaml:"secret"`
@@ -86,8 +87,13 @@ func setDefaultValues() {
 		slog.Debug("set default redis port", "port", AuthServerConfig.Redis.Port)
 	}
 	if AuthServerConfig.DB == "" {
-		AuthServerConfig.DB = "root:root@(localhost:3306)/auth?parseTime=true"
-		slog.Debug("set default db address", "port", AuthServerConfig.DB)
+		// Default PostgreSQL DSN (disable ssl for local dev)
+		AuthServerConfig.DB = "postgres://postgres:postgres@localhost:5432/auth?sslmode=disable"
+		slog.Debug("set default db address", "dsn", AuthServerConfig.DB)
+	}
+	if AuthServerConfig.DBSearchPath == "" {
+		AuthServerConfig.DBSearchPath = "auth"
+		slog.Debug("set default db search_path", "schema", AuthServerConfig.DBSearchPath)
 	}
 	if len(AuthServerConfig.JWT) == 0 {
 		keySize := 2048
@@ -122,7 +128,7 @@ func resolveEnv(cfg *Config) {
 
 func resolveStruct(v reflect.Value) {
 	t := v.Type()
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		field := v.Field(i)
 		fieldType := t.Field(i)
 

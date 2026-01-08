@@ -1,0 +1,7 @@
+{
+  // Workspace recommended extensions. VS Code 会在打开此项目时提示安装。
+  "recommendations": [
+    "golang.go",                 // Go 开发（调试、智能感知、测试）
+  ],
+  "unwantedRecommendations": []
+}

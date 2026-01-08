@@ -49,7 +49,7 @@ func ParseScope(s string) (ScopeInfo, error) {
 	return nil, errors.New("invalid scope name")
 }
 
-func ParseScopes(s string) []ScopeInfo {
+func ParseScopes(s string) []*ScopeInfo {
 	m := map[string]ScopeInfo{}
 	for _, scopeStr := range strings.Fields(s) {
 		for _, scope := range allScopes {
@@ -63,9 +63,9 @@ func ParseScopes(s string) []ScopeInfo {
 			m[scope.GetName()] = scope
 		}
 	}
-	var r []ScopeInfo
+	var r []*ScopeInfo
 	for _, scope := range m {
-		r = append(r, scope)
+		r = append(r, &scope)
 	}
 	return r
 }

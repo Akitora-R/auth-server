@@ -28,6 +28,9 @@ COPY --from=builder /app/auth-server .
 COPY --from=builder /app/template ./template/
 COPY placeholder.jpg .
 
+# set environment variables
+ENV GIN_MODE=release
+
 # Port that the application listens on
 EXPOSE 8080
 

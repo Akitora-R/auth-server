@@ -9,6 +9,7 @@ const (
 	SessionKeyScopeConsented = "scopeConsented"
 	SessionKeyResponseType   = "responseType"
 	SessionKeyTelegramData   = "telegramData"
+	SessionKeyNext           = "next"
 )
 
 const (
@@ -20,4 +21,16 @@ const (
 	PathUserinfo     = "/userinfo"
 	PathRegistration = "/registration"
 	PathJwkSet       = "/.well-known/jwks.json"
+
+	// Admin paths (singular 'client' to match router)
+	PathAdminClients    = "/admin/client"
+	PathAdminClientNew  = "/admin/client/new"
+	PathAdminClientEdit = "/admin/client/edit"   // query param id
+	PathAdminClientDel  = "/admin/client/delete" // query param id
+)
+
+// 登录页 next 参数
+const (
+	NextAuth  = "auth"
+	NextAdmin = "admin"
 )

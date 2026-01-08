@@ -6,6 +6,7 @@ CREATE TABLE auth_user
     display_name VARCHAR(255),
     created_at   DATETIME,
     updated_at   DATETIME,
+    last_login_at DATETIME,
     PRIMARY KEY (id)
 );
 
@@ -36,3 +37,24 @@ CREATE TABLE auth_client
     PRIMARY KEY (id)
 );
 
+DROP TABLE IF EXISTS auth_role;
+CREATE TABLE auth_role
+(
+    id          bigint       NOT NULL AUTO_INCREMENT,
+    name        VARCHAR(255) NOT NULL,
+    description text,
+    created_at  DATETIME,
+    updated_at  DATETIME,
+    PRIMARY KEY (id)
+);
+
+DROP TABLE IF EXISTS auth_user_role;
+CREATE TABLE auth_user_role
+(
+    id         bigint NOT NULL AUTO_INCREMENT,
+    user_id    bigint NOT NULL,
+    role_id    bigint NOT NULL,
+    created_at DATETIME,
+    updated_at DATETIME,
+    PRIMARY KEY (id)
+);
