@@ -33,10 +33,7 @@ func InitServer() *server.Server {
 
 	manager.MustTokenStorage(storeImpl.NewRedisStoreWithCli(internal.Rdb), nil)
 	session.InitManager(
-		session.SetStore(redis.NewRedisStore(&redis.Options{
-			Addr: internal.AuthServerConfig.Redis.Host + ":" + internal.AuthServerConfig.Redis.Port,
-			DB:   0,
-		})),
+		session.SetStore(redis.NewRedisStoreWithCli(internal.Rdb)),
 	)
 	manager.MapAccessGenerate(&ClientConfigTokenGenerate{})
 	manager.MapClientStorage(storeImpl.ClientRepo)

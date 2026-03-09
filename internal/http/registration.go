@@ -5,6 +5,7 @@ import (
 	"auth-server/internal/model"
 	"auth-server/internal/render"
 	"auth-server/internal/store"
+	"auth-server/internal/util"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -30,13 +31,14 @@ func getRegistrationHandler(_ *server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionStore, err := session.Start(r.Context(), w, r)
 		if err != nil {
+			slog.Error("failed to start session", "error", err)
 			responseJson(w, 1, err)
 			return
 		}
 		if r.Method == http.MethodPost {
 			handleJsonReg(w, r, sessionStore)
 		} else if r.Method == http.MethodGet {
-			handleRegPage(w, sessionStore)
+			handleRegPage(w, r, sessionStore)
 		}
 	}
 }
@@ -45,27 +47,47 @@ func handleJsonReg(w http.ResponseWriter, r *http.Request, s session.Store) {
 	ip := getIp(r)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		slog.Error("failed to read registration request body", "error", err, "ip", ip)
 		responseJson(w, 1, err)
 		return
 	}
 	req := regReq{}
-	_ = json.Unmarshal(body, &req)
-	if err = verifyRequest(req.CfToken, ip); err != nil {
+	if err = json.Unmarshal(body, &req); err != nil {
+		slog.Error("failed to unmarshal registration request", "error", err, "ip", ip)
 		responseJson(w, 1, err)
+		return
+	}
+	if err = verifyRequest(req.CfToken, ip); err != nil {
+		slog.Warn("failed to verify turnstile request", "error", err, "ip", ip)
+		responseJson(w, 1, "failed to verify turnstile request")
 		return
 	}
 	tgData, ok := s.Get(internal.SessionKeyTelegramData)
 	if !ok {
+		slog.Warn("failed to read telegram user data from session", "ip", ip)
 		responseJson(w, 1, "failed to read user data")
 		return
 	}
-	tgUser := tgData.(model.TelegramUser)
+	tgUserMap, ok := tgData.(map[string]any)
+	if !ok {
+		slog.Error("failed to cast telegram user data", "ip", ip)
+		responseJson(w, 1, "failed to read user data")
+		return
+	}
+	tgUser, err := util.MapToStruct[*model.TelegramUser](tgUserMap)
+	if err != nil {
+		slog.Error("failed to cast telegram user data", "error", err, "ip", ip)
+		responseJson(w, 1, "failed to read user data")
+		return
+	}
 	bytes, _ := json.Marshal(tgUser)
 
 	erd := emailRegData{}
-	_ = json.Unmarshal(req.Data, &erd)
+	if err = json.Unmarshal(req.Data, &erd); err != nil {
+		slog.Error("failed to unmarshal email registration data", "error", err, "ip", ip)
+	}
 	if erd.Email == "" {
-		slog.Warn("failed to get user email")
+		slog.Warn("email is missing in registration data", "ip", ip, "loginKey", tgUser.Id)
 		responseJson(w, 1, "email is required")
 		return
 	}
@@ -90,9 +112,11 @@ func handleJsonReg(w http.ResponseWriter, r *http.Request, s session.Store) {
 
 	err = store.UserRepo.AddUser(&user, userProvider)
 	if err != nil {
+		slog.Error("failed to add user to database", "error", err, "ip", ip, "loginKey", tgUser.Id, "email", user.Email)
 		responseJson(w, 1, err)
 		return
 	}
+	slog.Info("user registered successfully", "ip", ip, "loginKey", tgUser.Id, "email", user.Email)
 
 	s.Delete(internal.SessionKeyTelegramData)
 
@@ -100,9 +124,10 @@ func handleJsonReg(w http.ResponseWriter, r *http.Request, s session.Store) {
 	_ = json.NewEncoder(w).Encode(map[string]any{"code": 0})
 }
 
-func handleRegPage(w http.ResponseWriter, s session.Store) {
+func handleRegPage(w http.ResponseWriter, r *http.Request, s session.Store) {
 	tgData, ok := s.Get(internal.SessionKeyTelegramData)
 	if !ok {
+		slog.Warn("failed to read telegram user data from session on registration page", "ip", getIp(r))
 		http.Error(w, "failed to read user data", http.StatusInternalServerError)
 		return
 	}

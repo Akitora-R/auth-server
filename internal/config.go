@@ -88,12 +88,8 @@ func setDefaultValues() {
 	}
 	if AuthServerConfig.DB == "" {
 		// Default PostgreSQL DSN (disable ssl for local dev)
-		AuthServerConfig.DB = "postgres://postgres:postgres@localhost:5432/auth?sslmode=disable"
+		AuthServerConfig.DB = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 		slog.Debug("set default db address", "dsn", AuthServerConfig.DB)
-	}
-	if AuthServerConfig.DBSearchPath == "" {
-		AuthServerConfig.DBSearchPath = "auth"
-		slog.Debug("set default db search_path", "schema", AuthServerConfig.DBSearchPath)
 	}
 	if len(AuthServerConfig.JWT) == 0 {
 		keySize := 2048

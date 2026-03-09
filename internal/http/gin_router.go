@@ -5,9 +5,11 @@ import (
 	"auth-server/internal/http/admin"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,8 +23,14 @@ func CreateGinEngine(srv *server.Server) *gin.Engine {
 	r := gin.New()
 	// discard default gin text logger, we use slog
 	gin.DefaultWriter = io.Discard
-	gin.DefaultErrorWriter = io.Discard
-	r.Use(gin.Recovery())
+	// ensure panic stack traces are printed to the console
+	gin.DefaultErrorWriter = os.Stderr
+	r.Use(gin.CustomRecovery(func(c *gin.Context, recovered any) {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"code": 1,
+			"msg":  fmt.Sprintf("%v", recovered),
+		})
+	}))
 	r.Use(ginSlogLogger())
 
 	// keep previous session expiration behavior (15 minutes)
