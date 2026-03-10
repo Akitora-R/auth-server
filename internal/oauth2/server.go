@@ -50,7 +50,6 @@ func InitServer() *server.Server {
 			oauth2.Refreshing,
 		},
 		AllowedCodeChallengeMethods: []oauth2.CodeChallengeMethod{
-			oauth2.CodeChallengePlain,
 			oauth2.CodeChallengeS256,
 		},
 	}
