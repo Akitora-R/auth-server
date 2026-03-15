@@ -82,6 +82,7 @@ func getAuthHandler() http.HandlerFunc {
 		}
 		data["user"] = sessionUser.User
 		data["sessionUser"] = sessionUser
+		data["codeChallengeMethod"] = "S256"
 
 		_ = render.Html(w, "auth.gohtml", 200, data)
 	}

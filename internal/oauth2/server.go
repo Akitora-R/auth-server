@@ -64,7 +64,36 @@ func InitServer() *server.Server {
 	srv.SetResponseErrorHandler(func(re *errors.Response) {
 		slog.Error("Response Error", "err", re.Error.Error())
 	})
+	srv.SetPreRedirectErrorHandler(preRedirectErrorHandler)
 	return srv
+}
+
+func preRedirectErrorHandler(w http.ResponseWriter, req *server.AuthorizeRequest, err error) error {
+	w.Header().Set("Content-Type", "text/plain;charset=UTF-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Pragma", "no-cache")
+	w.WriteHeader(http.StatusBadRequest)
+
+	if req == nil {
+		slog.Error("Authorization PreRedirect Error (req is nil)", "err", err)
+		_, _ = w.Write([]byte("Error: invalid_request\nDescription: " + err.Error() + "\n"))
+		return nil
+	}
+
+	slog.Error("Authorization PreRedirect Error",
+		"client_id", req.ClientID,
+		"response_type", string(req.ResponseType),
+		"redirect_uri", req.RedirectURI,
+		"state", req.State,
+		"err", err,
+	)
+
+	body := "Error: access_denied\nDescription: " + err.Error() + "\n"
+	if req.State != "" {
+		body += "State: " + req.State + "\n"
+	}
+	_, _ = w.Write([]byte(body))
+	return nil
 }
 
 func userAuthorizeHandler(w http.ResponseWriter, r *http.Request) (userID string, err error) {
