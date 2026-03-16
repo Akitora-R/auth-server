@@ -7,42 +7,45 @@
 </head>
 
 <body>
-{{template "navbar" .}}
-<main class="layout-main">
-<section class="section">
-    <div class="container">
-        <h1 class="title">Authorize</h1>
-        <div class="box">
-            <form action="/oauth2/authorize" method="GET">
-                <input type="hidden" name="client_id" value="{{.clientInfo.GetID}}">
-                <input type="hidden" name="response_type" value="{{.responseType}}">
+    {{template "navbar" .}}
+    <main class="layout-main">
+        <section class="section">
+            <div class="container">
+                <h1 class="title">Authorize</h1>
+                <div class="box">
+                    <form action="/oauth2/authorize" method="GET">
+                        <input type="hidden" name="client_id" value="{{.clientInfo.GetID}}">
+                        <input type="hidden" name="response_type" value="{{.responseType}}">
+                        <input type="hidden" name="code_challenge_method" value="{{.codeChallengeMethod}}">
 
-                <div class="content">
-                    <p>The {{.clientInfo.GetDisplayName}} is requesting following scopes:</p>
-                </div>
+                        <div class="content">
+                            <p>The {{.clientInfo.GetDisplayName}} is requesting following scopes:</p>
+                        </div>
 
-                <div class="columns is-multiline">
-                    {{- range .scopeRequested }}
-                    <div class="column is-full-mobile is-half-tablet is-one-third-desktop is-one-quarter-widescreen">
-                        <label class="checkbox">
-                            <input type="checkbox" id="{{.GetName}}" name="consented" value="{{.GetName}}" {{if .IsDefault}}checked readonly{{end}}>
-                            {{.GetName}}
-                        </label>
-                    </div>
-                    {{- end }}
-                </div>
+                        <div class="columns is-multiline">
+                            {{- range .scopeRequested }}
+                            <div
+                                class="column is-full-mobile is-half-tablet is-one-third-desktop is-one-quarter-widescreen">
+                                <label class="checkbox">
+                                    <input type="checkbox" id="{{.GetName}}" name="consented" value="{{.GetName}}" {{if
+                                        .IsDefault}}checked readonly{{end}}>
+                                    {{.GetName}}
+                                </label>
+                            </div>
+                            {{- end }}
+                        </div>
 
-                <div class="field">
-                    <div class="control">
-                        <button type="submit" class="button is-primary is-large">Allow</button>
-                    </div>
+                        <div class="field">
+                            <div class="control">
+                                <button type="submit" class="button is-primary is-large">Allow</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-            </form>
-        </div>
-    </div>
-    </section>
-</main>
-{{template "footer" .}}
+            </div>
+        </section>
+    </main>
+    {{template "footer" .}}
 </body>
 
 </html>

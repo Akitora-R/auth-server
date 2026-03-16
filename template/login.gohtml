@@ -172,9 +172,11 @@
             toggleTelegramModal(false);
             loginReq(formData).then(r => r.json()).then(j => {
                 console.log("login resp", j);
-                if (j.code === 0 && j.data.user) {
-                    handleRedirect(j.data.user);
+                if (j.code !== 0) {
+                    console.error("login failed", j);
+                    return;
                 }
+                handleRedirect(j.data.user);
             }).finally(() => setLoginBtnDisable(false));
         }
 

@@ -21,17 +21,6 @@ func init() {
 	}
 	DB = db
 
-	// Ensure search_path points to configured schema list
-	sp := AuthServerConfig.DBSearchPath
-	if sp != "" {
-		query := "SET search_path TO " + sp
-		if _, err = DB.Exec(query); err != nil {
-			slog.Warn("failed to set search_path", "search_path", sp, "err", err)
-		} else {
-			slog.Info("search_path set", "search_path", sp)
-		}
-	}
-
 	logConnectionInfo(AuthServerConfig.DB)
 }
 
