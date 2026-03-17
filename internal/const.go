@@ -20,6 +20,7 @@ const (
 	PathIntrospect   = "/introspect"
 	PathUserinfo     = "/userinfo"
 	PathRegistration = "/registration"
+	PathDiscovery    = "/.well-known/openid-configuration"
 	PathJwkSet       = "/.well-known/jwks.json"
 
 	// Admin paths (singular 'client' to match router)

@@ -54,6 +54,7 @@ func CreateGinEngine(srv *server.Server) *gin.Engine {
 	r.POST(internal.PathToken, gin.WrapF(getTokenHandler(srv)))
 	r.POST(internal.PathIntrospect, gin.WrapF(getIntrospectHandler(srv)))
 	r.POST(internal.PathUserinfo, gin.WrapF(getUserinfoHandler(srv)))
+	r.GET(internal.PathDiscovery, gin.WrapF(discoveryHandler))
 	r.GET(internal.PathJwkSet, gin.WrapF(jwkSetHandler))
 	r.GET(internal.PathRegistration, gin.WrapF(getRegistrationHandler(srv)))
 	r.POST(internal.PathRegistration, gin.WrapF(getRegistrationHandler(srv)))

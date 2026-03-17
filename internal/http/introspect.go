@@ -47,8 +47,12 @@ func getIntrospectHandler(srv *server.Server) http.HandlerFunc {
 		}
 
 		m := map[string]any{
-			"active": true,
-			"sub":    ti.GetUserID(),
+			"active":    true,
+			"sub":       ti.GetUserID(),
+			"scope":     ti.GetScope(),
+			"client_id": cli.GetID(),
+			"exp":       ti.GetAccessCreateAt().Add(ti.GetAccessExpiresIn()).Unix(),
+			"iat":       ti.GetAccessCreateAt().Unix(),
 		}
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(m)
