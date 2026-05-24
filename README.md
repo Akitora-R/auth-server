@@ -70,8 +70,9 @@ sequenceDiagram
 port: 80
 host: 0.0.0.0
 redis:
-  address: 127.0.0.1:6379
-db: "root:root@(localhost:3306)/auth?parseTime=true"
+  host: 0.0.0.0
+  port: 6379
+db: "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable&search_path=auth"
 jwt:
   - kid: "rsa1"
     alg: "RS256"
@@ -84,7 +85,7 @@ jwt:
 ## 🗺️ TODO
 
 ### Phase 1: 核心身份与授权机制 (IdP Core)
-- [ ] **精简内部权限模型**：新增表 `admin_info` 用于记录特权用户信息，这是 admin clinet 的内部表，和用户表无直接关联。通过 `admin_info` 的 `user_id` 字段关联到用户表，标记哪些用户具备超级管理员权限。
+- [ ] **精简内部权限模型**：新增表 `auth_admin` 记录管理员用户。通过 `user_id` 字段关联到 `auth_user` 表，表中存在记录即标记该用户具备管理员权限。
 - [ ] **注册第一方客户端**：在系统初始化时，自动注入一个内置的管理员客户端（例如 `client_id=internal_admin_console`）。
 - [ ] **定义特权 Scope**：明确界定后台管理专用的作用域（如 `manage:system`, `manage:clients`），并在颁发 Token 时结合用户内置身份进行严格校验。
 
@@ -93,10 +94,14 @@ jwt:
 - [ ] **特权鉴权中间件**：实现无状态的 JWT 校验拦截器。该中间件强制要求：
   - Token 必须由合法的 `internal_admin_console` 客户端申请。
   - Token 必须包含对应的高级 `scope`。
-  - Token 对应的底层 `User` 必须具备 `is_superadmin` 资格。
+  - Token 对应的底层 `User` 必须在 `auth_admin` 表中存在记录。
 
 ### Phase 3: 轻量级管理前端客户端 (Admin UI Client)
-- [ ] **极简 SPA 开发**：摒弃重型前端脚手架，使用原生 HTML/JS/CSS（或轻量级 CDN 框架）构建单页管理应用。
+- [ ] **极简 SPA 开发**：摒弃重型前端脚手架，使用原生 HTML/JS/CSS（或轻量级 CDN 框架如 Alpine.js/htmx）构建单页管理应用。功能涵盖：
+  - **用户管理**：列表查询、创建/编辑、启用/禁用、密码重置。
+  - **客户端管理**：注册/编辑 OAuth2 客户端（client_id, redirect_uri, grant_types）、分配允许的 Scope、启停客户端。
+  - **会话管理**：查看活跃 Token/会话列表、强制撤销/下线。
+  - **管理员管理**：查看/添加/移除 `auth_admin` 表中的管理员记录。
 - [ ] **静态资源内嵌**：利用 Go `embed` 特性，将前端文件无缝打包至编译后的单个二进制文件中，实现零额外依赖部署。
 - [ ] **宿主路由分发**：开放 `/admin-page` 路由，作为静态文件的宿主，直接吐出前端页面。
 
