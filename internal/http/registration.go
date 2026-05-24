@@ -131,10 +131,8 @@ func handleRegPage(w http.ResponseWriter, r *http.Request, s session.Store) {
 		http.Error(w, "failed to read user data", http.StatusInternalServerError)
 		return
 	}
-	next, _ := s.Get(internal.SessionKeyNext)
 	_ = render.Html(w, "registration.gohtml", 200, map[string]any{
 		"tgData":   tgData,
 		"site_key": internal.AuthServerConfig.Cloudflare.Turnstile.Key,
-		"next":     next,
 	})
 }

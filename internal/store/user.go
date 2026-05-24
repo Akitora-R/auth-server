@@ -30,19 +30,7 @@ func (m *DbUserStore) GetUserByID(id int64) (*model.User, error) {
 	if err := internal.DB.Get(&authUser, "select * from auth_user where id = $1", id); err != nil {
 		return nil, err
 	}
-	var roles []model.AuthRole
-	query := `SELECT r.id, r.name, r.description
-			  FROM auth_role r
-			  JOIN auth_user_role ur ON r.id = ur.role_id
-			  WHERE ur.user_id = $1`
-	if err := internal.DB.Select(&roles, query, authUser.ID); err != nil {
-		return nil, err
-	}
-	roleList := make([]*model.Role, 0, len(roles))
-	for _, r := range roles {
-		roleList = append(roleList, model.NewRoleFromAuth(r))
-	}
-	user := model.NewUserFromAuth(authUser, roleList, authUser.LastLoginAt)
+	user := model.NewUserFromAuth(authUser, authUser.LastLoginAt)
 	return &user, nil
 }
 
@@ -177,19 +165,7 @@ func (m *DbUserStore) List() ([]model.User, error) {
 	}
 	users := make([]model.User, 0, len(authUsers))
 	for _, au := range authUsers {
-		var roles []model.AuthRole
-		query := `SELECT r.id, r.name, r.description
-			  FROM auth_role r
-			  JOIN auth_user_role ur ON r.id = ur.role_id
-			  WHERE ur.user_id = $1`
-		_ = internal.DB.Select(&roles, query, au.ID)
-
-		roleList := make([]*model.Role, 0, len(roles))
-		for _, r := range roles {
-			roleList = append(roleList, model.NewRoleFromAuth(r))
-		}
-
-		users = append(users, model.NewUserFromAuth(au, roleList, au.LastLoginAt))
+		users = append(users, model.NewUserFromAuth(au, au.LastLoginAt))
 	}
 	return users, nil
 }
@@ -208,9 +184,6 @@ func (m *DbUserStore) Delete(id int64) error {
 	}()
 
 	if _, err = tx.Exec("DELETE FROM auth_user_provider WHERE user_id = $1", id); err != nil {
-		return err
-	}
-	if _, err = tx.Exec("DELETE FROM auth_user_role WHERE user_id = $1", id); err != nil {
 		return err
 	}
 	if _, err = tx.Exec("DELETE FROM auth_user WHERE id = $1", id); err != nil {

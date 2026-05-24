@@ -61,7 +61,6 @@ func CreateGinEngine(srv *server.Server) *gin.Engine {
 
 	// Admin routes
 	adminGroup := r.Group("/admin")
-	adminGroup.Use(admin.AuthMiddleware())
 	{
 		adminGroup.GET("/client", gin.WrapF(admin.GetClients()))
 		adminGroup.POST("/client/new", gin.WrapF(admin.PostClientNew()))

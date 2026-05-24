@@ -15,17 +15,7 @@ type User struct {
 	ID          int64      `json:"id"`
 	Email       string     `json:"email"`
 	DisplayName string     `json:"display_name"`
-	Roles       []*Role    `json:"roles,omitempty"`
 	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
-}
-
-func (u *User) HasRole(roleName string) bool {
-	for _, role := range u.Roles {
-		if role.Name == roleName {
-			return true
-		}
-	}
-	return false
 }
 
 // SessionUserInfo 用于在会话中存储当前登录用户的上下文数据
@@ -39,12 +29,11 @@ type SessionUserInfo struct {
 }
 
 // NewUserFromAuth constructs a user from the auth user entity
-func NewUserFromAuth(authUser AuthUser, roles []*Role, lastLoginAt *time.Time) User {
+func NewUserFromAuth(authUser AuthUser, lastLoginAt *time.Time) User {
 	return User{
 		ID:          authUser.ID,
 		Email:       authUser.Email,
 		DisplayName: authUser.DisplayName,
-		Roles:       roles,
 		LastLoginAt: lastLoginAt,
 	}
 }

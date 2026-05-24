@@ -78,18 +78,10 @@
 
     <script>
         /**
-         * @typedef {Object} Role
-         * @property {number} id
-         * @property {string} name
-         * @property {string} description
-         */
-
-        /**
          * @typedef {Object} User
          * @property {number} id - 用户的ID
          * @property {string} email - 用户的邮箱
          * @property {string} display_name - 用户的显示名称
-         * @property {Role[]} [roles] - 用户的角色列表
          * @property {string} [last_login_at] - 上次登录时间
          */
 
@@ -109,8 +101,7 @@
          * @type {TelegramUser}
          */
         let tgUser = undefined;
-        // Read next param from URL (auth | admin). Default to 'auth' if missing.
-        const next = new URLSearchParams(window.location.search).get('next') || 'auth';
+
         /**
          * @param {string} token
          */
@@ -184,20 +175,10 @@
          * @param {User} user
          */
         function handleRedirect(user) {
-            if (next === "auth") {
-                if (!user) {
-                    window.location.replace("/registration");
-                } else {
-                    window.location.replace("/auth");
-                }
-            } else if (next === "admin") {
-                // it requires admin role, if not, show error message
-                if (user.roles && user.roles.some(role => role.name === "admin")) {
-                    // redirect to admin clients page
-                    window.location.replace("/admin/client");
-                } else {
-                    showErrorMessage("You don't have permission to access admin panel");
-                }
+            if (!user) {
+                window.location.replace("/registration");
+            } else {
+                window.location.replace("/auth");
             }
         }
 

@@ -22,10 +22,6 @@ func getAuthorizeHandler(srv *server.Server) http.HandlerFunc {
 			return
 		}
 
-		// if admin logged previously, clean the session
-		if next, ok := s.Get(internal.SessionKeyNext); ok && next == internal.NextAdmin {
-			_ = s.Flush()
-		}
 		_ = r.ParseForm()
 		uid, ok := s.Get(internal.SessionKeyUserID)
 		if !ok {
@@ -65,7 +61,7 @@ func handleUnauthenticated(w http.ResponseWriter, r *http.Request, s session.Sto
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Location", internal.PathLogin+"?next="+internal.NextAuth)
+	w.Header().Set("Location", internal.PathLogin)
 	w.WriteHeader(http.StatusFound)
 }
 

@@ -85,7 +85,7 @@
             showErrorMessage("Network Error");
         }).then(r => r.json()).then(j => {
             if (j.code === 0) {
-                window.location.replace("/login?next=" + encodeURIComponent("{{.next}}"));
+                window.location.replace("/login");
             } else {
                 console.error(j);
                 showErrorMessage(JSON.stringify(j));
