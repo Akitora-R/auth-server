@@ -38,7 +38,7 @@ func (c *AuthClient) GetDomain() string {
 }
 
 func (c *AuthClient) IsPublic() bool {
-	return true
+	return false
 }
 
 func (c *AuthClient) GetUserID() string {
