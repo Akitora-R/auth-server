@@ -167,8 +167,7 @@ func basicAuth(clientID, secret string) string {
 
 func TestBasicAuth_ValidSecret_ClientCredentials(t *testing.T) {
 	srv := setupServer()
-	body := "grant_type=client_credentials&scope=read"
-	req := tokenReq(body)
+	req := tokenReq("grant_type=client_credentials&scope=read")
 	req.Header.Set("Authorization", basicAuth("test-client", "correct-secret"))
 	w := httptest.NewRecorder()
 	_ = srv.HandleTokenRequest(w, req)
@@ -245,7 +244,6 @@ func TestBasicAuth_ValidSecret_AuthCode_InvalidCode(t *testing.T) {
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d: %s", w.Code, w.Body.String())
 	}
-	// valid secret → should fail on code, not on client auth
 	if strings.Contains(w.Body.String(), "invalid_client") {
 		t.Fatalf("should NOT reject valid client: %s", w.Body.String())
 	}
@@ -278,33 +276,4 @@ func TestBasicAuth_MalformedAuthHeader(t *testing.T) {
 	if !strings.Contains(w.Body.String(), "invalid_client") {
 		t.Fatalf("expected invalid_client: %s", w.Body.String())
 	}
-}
-
-// ---------- IsPublic / model interface compliance ----------
-
-func TestClientModel_IsNotPublic(t *testing.T) {
-	c := &model.AuthClient{}
-	if c.IsPublic() {
-		t.Fatal("AuthClient.IsPublic() must return false")
-	}
-}
-
-func TestClientModel_Interfaces(t *testing.T) {
-	c := &model.AuthClient{
-		ID:        42,
-		Secret:    "s3cret",
-		Domain:    "https://example.com/cb",
-		TokenType: func() *model.TokenType { t := model.TokenType(1); return &t }(),
-	}
-	if c.GetID() != "42" {
-		t.Fatalf("GetID = %s", c.GetID())
-	}
-	if c.GetSecret() != "s3cret" {
-		t.Fatalf("GetSecret = %s", c.GetSecret())
-	}
-	if c.GetDomain() != "https://example.com/cb" {
-		t.Fatalf("GetDomain = %s", c.GetDomain())
-	}
-	var _ oauth2.ClientInfo = c
-	var _ model.ScopedClientInfo = c
 }

@@ -71,6 +71,26 @@ func CreateGinEngine(srv *server.Server) *gin.Engine {
 		adminGroup.POST("/accounts/del", gin.WrapF(admin.PostAccountDel()))
 	}
 
+	// Admin JSON API (JWT Bearer token protected)
+	apiAdmin := r.Group("/api/admin")
+	apiAdmin.Use(admin.AuthMiddleware(srv.Manager))
+	{
+		apiAdmin.GET("/users", admin.GetUsersAPI())
+		apiAdmin.POST("/users", admin.PostUserAPI())
+		apiAdmin.DELETE("/users/:id", admin.DeleteUserAPI())
+
+		apiAdmin.GET("/clients", admin.GetClientsAPI())
+		apiAdmin.POST("/clients", admin.PostClientAPI())
+		apiAdmin.DELETE("/clients/:id", admin.DeleteClientAPI())
+
+		apiAdmin.GET("/admins", admin.GetAdminsAPI())
+		apiAdmin.POST("/admins", admin.PostAdminAPI())
+		apiAdmin.DELETE("/admins/:user_id", admin.DeleteAdminAPI())
+
+		apiAdmin.GET("/sessions", admin.GetSessionsAPI(srv.Manager))
+		apiAdmin.DELETE("/sessions/:user_id", admin.DeleteSessionAPI(srv.Manager))
+	}
+
 	// 404 fallback
 	r.NoRoute(func(c *gin.Context) {
 		c.String(http.StatusNotFound, "Not Found")

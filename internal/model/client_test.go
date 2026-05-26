@@ -3,34 +3,36 @@ package model_test
 import (
 	"auth-server/internal/model"
 	"testing"
+
+	"github.com/go-oauth2/oauth2/v4"
 )
 
 func TestAuthClientIsNotPublic(t *testing.T) {
-	c := &model.AuthClient{
-		ID:     1,
-		Secret: "test-secret",
-	}
+	c := &model.AuthClient{Secret: "s"}
 	if c.IsPublic() {
 		t.Fatal("AuthClient.IsPublic() should return false to enforce client secret validation")
 	}
 }
 
-func TestAuthClientGetID(t *testing.T) {
+func TestAuthClientInterfaces(t *testing.T) {
 	c := &model.AuthClient{
-		ID:     42,
-		Secret: "s",
+		ID:        42,
+		Secret:    "s3cret",
+		Domain:    "https://example.com/cb",
+		TokenType: func() *model.TokenType { t := model.TokenType(1); return &t }(),
 	}
 	if c.GetID() != "42" {
-		t.Fatalf("expected '42', got '%s'", c.GetID())
+		t.Fatalf("GetID = %s", c.GetID())
 	}
-}
-
-func TestAuthClientGetSecret(t *testing.T) {
-	c := &model.AuthClient{
-		ID:     1,
-		Secret: "my-secret",
+	if c.GetSecret() != "s3cret" {
+		t.Fatalf("GetSecret = %s", c.GetSecret())
 	}
-	if c.GetSecret() != "my-secret" {
-		t.Fatalf("expected 'my-secret', got '%s'", c.GetSecret())
+	if c.GetDomain() != "https://example.com/cb" {
+		t.Fatalf("GetDomain = %s", c.GetDomain())
 	}
+	if c.IsPublic() {
+		t.Fatal("IsPublic should be false")
+	}
+	var _ oauth2.ClientInfo = c
+	var _ model.ScopedClientInfo = c
 }
