@@ -1,9 +1,8 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import type { TokenResponse } from '../types'
 
-const CLIENT_ID = 'internal_admin_console'
-// The client secret for the admin SPA. In production this is injected at build time.
-const CLIENT_SECRET = '__ADMIN_CLIENT_SECRET__'
+const CLIENT_ID = import.meta.env.VITE_ADMIN_CLIENT_ID || 'internal_admin_console'
+const CLIENT_SECRET = import.meta.env.VITE_ADMIN_CLIENT_SECRET || ''
 const SCOPE = 'manage:system manage:clients'
 const REDIRECT_URI = window.location.origin + '/callback'
 
