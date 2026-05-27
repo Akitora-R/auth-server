@@ -5,6 +5,8 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [tailwindcss(), react()],
   server: {
+    host: true,
+    allowedHosts: ['aki.internal', 'localhost'],
     proxy: {
       '/oauth2': 'http://localhost:80',
       '/login': 'http://localhost:80',
