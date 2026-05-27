@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [tailwindcss(), react()],
   server: {
     host: true,
+    port: Number(process.env.VITE_PORT) || undefined,
     allowedHosts: ['aki.internal', 'localhost'],
     proxy: {
       '/oauth2': 'http://localhost:80',
