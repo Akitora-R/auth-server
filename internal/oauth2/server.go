@@ -75,8 +75,10 @@ func preRedirectErrorHandler(w http.ResponseWriter, req *server.AuthorizeRequest
 	w.WriteHeader(http.StatusBadRequest)
 
 	if req == nil {
+		msg := "Error: invalid_request\nDescription: " + err.Error() + "\n"
+		msg += "Hint: check that response_type, client_id, and redirect_uri are present and valid.\n"
 		slog.Error("Authorization PreRedirect Error (req is nil)", "err", err)
-		_, _ = w.Write([]byte("Error: invalid_request\nDescription: " + err.Error() + "\n"))
+		_, _ = w.Write([]byte(msg))
 		return nil
 	}
 
