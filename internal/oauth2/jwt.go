@@ -7,11 +7,13 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"log/slog"
 )
 
 func init() {
 	err := LoadJWTConfig()
 	if err != nil {
+		slog.Error("failed to load JWT config", "err", err)
 		panic(err)
 	}
 }

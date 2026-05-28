@@ -44,12 +44,12 @@ func handleUnauthenticated(w http.ResponseWriter, r *http.Request, s session.Sto
 	slog.Info("logging for not logged user", "client_id", clientID)
 	ci, err := storeImpl.ClientRepo.GetByID(r.Context(), clientID)
 	if err != nil {
-		slog.Warn("err when fetch client", "id", clientID, "err", err.Error())
+		slog.Warn("err when fetch client", "client_id", clientID, "err", err.Error())
 		http.Error(w, "invalid_client_id", http.StatusBadRequest)
 		return
 	}
 	if ci == nil {
-		slog.Warn("fetched nil client", "id", clientID)
+		slog.Warn("fetched nil client", "client_id", clientID)
 		http.Error(w, "invalid_client_id", http.StatusBadRequest)
 		return
 	}

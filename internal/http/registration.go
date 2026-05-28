@@ -31,7 +31,7 @@ func getRegistrationHandler(_ *server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionStore, err := session.Start(r.Context(), w, r)
 		if err != nil {
-			slog.Error("failed to start session", "error", err)
+			slog.Error("failed to start session", "err", err)
 			responseJson(w, 1, err)
 			return
 		}
@@ -47,18 +47,18 @@ func handleJsonReg(w http.ResponseWriter, r *http.Request, s session.Store) {
 	ip := getIp(r)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		slog.Error("failed to read registration request body", "error", err, "ip", ip)
+		slog.Error("failed to read registration request body", "err", err, "ip", ip)
 		responseJson(w, 1, err)
 		return
 	}
 	req := regReq{}
 	if err = json.Unmarshal(body, &req); err != nil {
-		slog.Error("failed to unmarshal registration request", "error", err, "ip", ip)
+		slog.Error("failed to unmarshal registration request", "err", err, "ip", ip)
 		responseJson(w, 1, err)
 		return
 	}
 	if err = verifyRequest(req.CfToken, ip); err != nil {
-		slog.Warn("failed to verify turnstile request", "error", err, "ip", ip)
+		slog.Warn("failed to verify turnstile request", "err", err, "ip", ip)
 		responseJson(w, 1, "failed to verify turnstile request")
 		return
 	}
@@ -76,7 +76,7 @@ func handleJsonReg(w http.ResponseWriter, r *http.Request, s session.Store) {
 	}
 	tgUser, err := util.MapToStruct[*model.TelegramUser](tgUserMap)
 	if err != nil {
-		slog.Error("failed to cast telegram user data", "error", err, "ip", ip)
+		slog.Error("failed to cast telegram user data", "err", err, "ip", ip)
 		responseJson(w, 1, "failed to read user data")
 		return
 	}
@@ -84,7 +84,7 @@ func handleJsonReg(w http.ResponseWriter, r *http.Request, s session.Store) {
 
 	erd := emailRegData{}
 	if err = json.Unmarshal(req.Data, &erd); err != nil {
-		slog.Error("failed to unmarshal email registration data", "error", err, "ip", ip)
+		slog.Error("failed to unmarshal email registration data", "err", err, "ip", ip)
 	}
 	if erd.Email == "" {
 		slog.Warn("email is missing in registration data", "ip", ip, "loginKey", tgUser.Id)
@@ -112,7 +112,7 @@ func handleJsonReg(w http.ResponseWriter, r *http.Request, s session.Store) {
 
 	err = store.UserRepo.AddUser(&user, userProvider)
 	if err != nil {
-		slog.Error("failed to add user to database", "error", err, "ip", ip, "loginKey", tgUser.Id, "email", user.Email)
+		slog.Error("failed to add user to database", "err", err, "ip", ip, "loginKey", tgUser.Id, "email", user.Email)
 		responseJson(w, 1, err)
 		return
 	}

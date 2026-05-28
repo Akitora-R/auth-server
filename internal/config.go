@@ -72,7 +72,7 @@ func init() {
 func setDefaultValues() {
 	if AuthServerConfig.Host == "" {
 		AuthServerConfig.Host = "localhost"
-		slog.Debug("set default listening host", "address", AuthServerConfig.Host)
+		slog.Debug("set default listening host", "host", AuthServerConfig.Host)
 	}
 	if AuthServerConfig.Port == 0 {
 		AuthServerConfig.Port = 8080
@@ -80,7 +80,7 @@ func setDefaultValues() {
 	}
 	if AuthServerConfig.Redis.Host == "" {
 		AuthServerConfig.Redis.Host = "localhost"
-		slog.Debug("set default redis address", "port", AuthServerConfig.Redis.Host)
+		slog.Debug("set default redis host", "host", AuthServerConfig.Redis.Host)
 	}
 	if AuthServerConfig.Redis.Port == "" {
 		AuthServerConfig.Redis.Port = "6379"
@@ -96,14 +96,15 @@ func setDefaultValues() {
 		alg := "RS256"
 		privateKey, err := rsa.GenerateKey(rand.Reader, keySize)
 		if err != nil {
-			panic("failed to generate RSA keys")
+			slog.Error("failed to generate RSA keys", "err", err)
+		panic("failed to generate RSA keys")
 		}
 		privateKeyPEM := pem.EncodeToMemory(&pem.Block{
 			Type:  "RSA PRIVATE KEY",
 			Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 		})
 
-		slog.Info("Generated RSA key pair", "algorithm", alg, "keySize", keySize)
+		slog.Info("Generated RSA key pair", "algorithm", alg, "key_size", keySize)
 		AuthServerConfig.JWT = []JWTConfig{
 			{
 				Kid: "default",
@@ -113,6 +114,7 @@ func setDefaultValues() {
 		}
 	}
 	if AuthServerConfig.Cloudflare.Turnstile.Key == "" || AuthServerConfig.Cloudflare.Turnstile.Secret == "" {
+		slog.Error("Cloudflare Turnstile is not configured")
 		panic("Cloudflare Turnstile un-config")
 	}
 }
@@ -157,6 +159,7 @@ func resolveString(v reflect.Value, fieldName string) {
 		envVal, found := os.LookupEnv(envKey)
 		if !found {
 			if defaultValue == "" {
+				slog.Error("required environment variable not set", "field", fieldName, "env", envKey)
 				panic(fmt.Sprintf("Environment variable for %s (%s) is not set and no default value is provided", fieldName, envKey))
 			}
 			envVal = defaultValue

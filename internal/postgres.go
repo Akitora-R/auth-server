@@ -17,6 +17,7 @@ func init() {
 	// postgres://user:pass@host:5432/auth?sslmode=disable
 	db, err := sqlx.Connect("pgx", AuthServerConfig.DB)
 	if err != nil {
+		slog.Error("failed to connect to database", "err", err)
 		panic(err)
 	}
 	DB = db

@@ -71,7 +71,7 @@ func handleJsonLogin(c *gin.Context, s session.Store) {
 	}
 	remoteIp := getIp(c.Request)
 	if err := verifyRequest(req.CfToken, remoteIp); err != nil {
-		slog.Warn("failed to verify request", "user_addr", remoteIp)
+		slog.Warn("failed to verify request", "ip", remoteIp)
 		responseJson(c.Writer, 1, "turnstile_verification_failed")
 		return
 	}

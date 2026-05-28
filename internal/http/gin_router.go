@@ -26,6 +26,7 @@ func CreateGinEngine(srv *server.Server) *gin.Engine {
 	// ensure panic stack traces are printed to the console
 	gin.DefaultErrorWriter = os.Stderr
 	r.Use(gin.CustomRecovery(func(c *gin.Context, recovered any) {
+		slog.Error("panic recovered", "err", fmt.Sprintf("%v", recovered), "path", c.Request.URL.Path)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"code": 1,
 			"msg":  fmt.Sprintf("%v", recovered),

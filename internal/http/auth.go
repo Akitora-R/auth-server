@@ -6,6 +6,7 @@ import (
 	"auth-server/internal/render"
 	storeImpl "auth-server/internal/store"
 	"auth-server/internal/util"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-session/session/v3"
@@ -90,6 +91,8 @@ func getAuthHandler() http.HandlerFunc {
 		if cc, ok := s.Get(internal.SessionKeyCodeChallenge); ok {
 			data["codeChallenge"] = cc
 		}
+
+		slog.Debug("rendering consent page", "client_id", cID, "scopes_count", len(scopeInfos))
 
 		_ = render.Html(w, "auth.gohtml", 200, data)
 	}
