@@ -139,9 +139,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleCallback = useCallback(async (code: string, state: string): Promise<boolean> => {
     const savedState = sessionStorage.getItem('pkce_state')
-    if (state !== savedState) return false
+    console.log('[auth] savedState:', savedState, 'received state:', state)
+    if (state !== savedState) {
+      console.error('[auth] state mismatch')
+      return false
+    }
     const verifier = sessionStorage.getItem('pkce_verifier')
-    if (!verifier) return false
+    if (!verifier) {
+      console.error('[auth] verifier not found in sessionStorage')
+      return false
+    }
 
     const body = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -151,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     const basicAuth = 'Basic ' + btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)
+    console.log('[auth] token request client_id:', CLIENT_ID, 'has_secret:', !!CLIENT_SECRET)
     const resp = await fetch('/oauth2/token', {
       method: 'POST',
       headers: {
@@ -160,7 +168,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: body.toString(),
     })
 
+    console.log('[auth] token response status:', resp.status)
+
     if (!resp.ok) {
+      const errText = await resp.text()
+      console.error('[auth] token request failed:', resp.status, errText)
       clearTokens()
       sessionStorage.removeItem('pkce_verifier')
       sessionStorage.removeItem('pkce_state')
@@ -169,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const data: TokenResponse = await resp.json()
+    console.log('[auth] token received, access_token length:', data.access_token?.length)
     saveTokens(data.access_token, data.refresh_token)
     sessionStorage.removeItem('pkce_verifier')
     sessionStorage.removeItem('pkce_state')

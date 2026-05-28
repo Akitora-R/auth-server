@@ -9,6 +9,8 @@ const (
 	SessionKeyScopeConsented = "scopeConsented"
 	SessionKeyResponseType   = "responseType"
 	SessionKeyTelegramData   = "telegramData"
+	SessionKeyState          = "state"
+	SessionKeyCodeChallenge  = "codeChallenge"
 )
 
 const (

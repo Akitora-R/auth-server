@@ -56,6 +56,8 @@ func handleUnauthenticated(w http.ResponseWriter, r *http.Request, s session.Sto
 	s.Set(internal.SessionKeyResponseType, r.Form.Get("response_type"))
 	s.Set(internal.SessionKeyScopeRequested, model.ParseScopes(r.FormValue("scope")))
 	s.Set(internal.SessionKeyClientID, clientID)
+	s.Set(internal.SessionKeyState, r.FormValue("state"))
+	s.Set(internal.SessionKeyCodeChallenge, r.FormValue("code_challenge"))
 	if err = s.Save(); err != nil {
 		slog.Error("error when saving session", "err", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)

@@ -84,6 +84,13 @@ func getAuthHandler() http.HandlerFunc {
 		data["sessionUser"] = sessionUser
 		data["codeChallengeMethod"] = "S256"
 
+		if state, ok := s.Get(internal.SessionKeyState); ok {
+			data["state"] = state
+		}
+		if cc, ok := s.Get(internal.SessionKeyCodeChallenge); ok {
+			data["codeChallenge"] = cc
+		}
+
 		_ = render.Html(w, "auth.gohtml", 200, data)
 	}
 }

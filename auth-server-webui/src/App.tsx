@@ -15,15 +15,31 @@ function CallbackPage() {
   const state = params.get('state')
 
   useEffect(() => {
-    if (code && state) {
-      handleCallback(code, state).then((ok) => {
+    console.log('[callback] URL:', window.location.href)
+    console.log('[callback] code:', code, 'state:', state)
+
+    if (!code || !state) {
+      const msg = `Missing params: code=${!!code} state=${!!state}`
+      console.error('[callback]', msg)
+      document.title = msg
+      return
+    }
+
+    console.log('[callback] exchanging code for token...')
+    handleCallback(code, state)
+      .then((ok) => {
+        console.log('[callback] result:', ok ? 'success -> /admin' : 'fail -> /login')
         window.location.href = ok ? '/admin' : '/login'
       })
-    }
+      .catch((err) => {
+        console.error('[callback] error:', err)
+        document.title = 'Callback error: ' + String(err)
+      })
   }, [code, state, handleCallback])
 
-  return <div className="flex items-center justify-center h-screen">
+  return <div className="flex flex-col items-center justify-center h-screen gap-2">
     <span className="loading loading-spinner loading-lg" />
+    <p className="text-base-content/60">Completing sign in...</p>
   </div>
 }
 
