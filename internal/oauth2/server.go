@@ -52,6 +52,7 @@ func InitServer() *server.Server {
 		AllowedCodeChallengeMethods: []oauth2.CodeChallengeMethod{
 			oauth2.CodeChallengeS256,
 		},
+		ForcePKCE: true,
 	}
 	srv := server.NewServer(&oauth2ServerConfig, manager)
 	srv.SetUserAuthorizationHandler(userAuthorizeHandler)
